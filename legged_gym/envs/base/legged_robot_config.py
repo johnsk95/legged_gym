@@ -41,6 +41,7 @@ class LeggedRobotCfg(BaseConfig):
         episode_length_s = 20 # episode length in seconds
 
     class terrain:
+        # mesh_type = 'trimesh' # "heightfield" # none, plane, heightfield or trimesh
         mesh_type = 'trimesh' # "heightfield" # none, plane, heightfield or trimesh
         horizontal_scale = 0.1 # [m]
         vertical_scale = 0.005 # [m]
@@ -124,8 +125,9 @@ class LeggedRobotCfg(BaseConfig):
         randomize_base_mass = False
         added_mass_range = [-1., 1.]
         push_robots = True
-        push_interval_s = 15
-        max_push_vel_xy = 1.
+        push_interval_s = 15  # def 15, ours 1
+        max_push_vel_xy = 1. #def 1, ours 0
+        max_push_force = 0. #def 500.
 
     class rewards:
         class scales:
