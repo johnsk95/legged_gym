@@ -28,6 +28,8 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
+from multiprocessing.context import ForkContext
+from re import I
 from legged_gym import LEGGED_GYM_ROOT_DIR
 import os
 
@@ -38,6 +40,10 @@ from legged_gym.utils import  get_args, export_policy_as_jit, task_registry, Log
 import numpy as np
 import torch
 
+from isaacgym import gymtorch
+import csv
+
+from legged_gym.scripts.predictor import MLP
 
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
@@ -48,7 +54,7 @@ def play(args):
     env_cfg.terrain.curriculum = False
     env_cfg.noise.add_noise = False
     env_cfg.domain_rand.randomize_friction = False
-    env_cfg.domain_rand.push_robots = False #def False
+    env_cfg.domain_rand.push_robots = True #def False
 
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
@@ -74,7 +80,61 @@ def play(args):
     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
     img_idx = 0
 
+    _root_tensor = env.gym.acquire_actor_root_state_tensor(env.sim)
+    root_tensor = gymtorch.wrap_tensor(_root_tensor)
+
+    # root_positions = root_tensor[:, 0:3]
+    root_orientations = root_tensor[:, 3:7]
+    root_linvels = root_tensor[:, 7:10]
+    root_angvels = root_tensor[:, 10:13]
+    oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
+
+    # f = open('write1_side_i2.csv', 'a', newline='')
+    # wr = csv.writer(f)
+
+    # f2 = open('write2_side_i2.csv', 'a', newline='')
+    # wr2 = csv.writer(f2)
+
+    # f3 = open('write3_side_i2.csv', 'a', newline='')
+    # wr3 = csv.writer(f3)
+
     for i in range(10*int(env.max_episode_length)):
+        # with open(f'./data/imu.txt', 'a') as f:
+        #     f.write(f'{root_tensor[0,3:].tolist()}, {env.force[0].tolist()}\n')
+        # print(env.force[0].tolist())
+        force = env.force * env.push_duration * env.dt
+        root_linacc = (root_linvels - oldvel) / env.dt
+
+        imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+
+        # if i > 50 and not env.zero: # only record when pushed
+        # if i > 30:
+            # info = torch.hstack([imu, force])
+
+            # dd = torch.hstack([imu, env.force])
+            # wr.writerows(imu.tolist() + env.force.tolist())
+            # wr.writerows(dd.tolist())
+
+            # wr.writerow(root_tensor[0,3:].tolist() + env.force[0].tolist())
+            # wr2.writerow(root_tensor[1,3:].tolist() + env.force[1].tolist())
+            # wr3.writerow(root_tensor[2,3:].tolist() + env.force[2].tolist())
+
+            # wr.writerow(imu.tolist() + env.force[0].tolist())
+            # wr2.writerow(imu.tolist() + env.force[1].tolist())
+            # wr3.writerow(imu.tolist() + env.force[2].tolist())
+            
+            # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
+            # wr.writerow(info[0].tolist())
+            # wr2.writerow(info[1].tolist())
+            # wr3.writerow(info[2].tolist())
+
+        # print(env.dof_vel)
+        # if not env.zero:
+            # print(f'Predicted: {env.predicted_force}, Target: {env.force[0,0]}')
+        # print(env.dt)
+        # print(env.sim_params.dt)
+
+        # print(root_angacc[0])
         actions = policy(obs.detach())
         obs, _, rews, dones, infos = env.step(actions.detach())
         if RECORD_FRAMES:
@@ -112,6 +172,13 @@ def play(args):
                     logger.log_rewards(infos["episode"], num_episodes)
         elif i==stop_rew_log:
             logger.print_rewards()
+            # f.close()
+            return
+
+        env.gym.refresh_actor_root_state_tensor(env.sim)
+    # f.close()
+    # f2.close()
+    # f3.close()
 
 if __name__ == '__main__':
     EXPORT_POLICY = True

@@ -29,6 +29,7 @@
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
 from legged_gym import LEGGED_GYM_ROOT_DIR, envs
+from legged_gym.scripts.predictor import MLP
 from time import time
 from warnings import WarningMessage
 import numpy as np
@@ -76,6 +77,24 @@ class LeggedRobot(BaseTask):
         self._init_buffers()
         self._prepare_reward_function()
         self.init_done = True
+
+        # custom: for variable push interval
+        self.push_interval_s = self.cfg.domain_rand.push_interval_s
+        self.push_interval = np.ceil(self.push_interval_s / self.dt)
+        self.push_duration = 0
+
+        self.predictor = MLP()
+        # self.predictor = torch.load('./mlp_side_big.pth')
+        self.predictor = torch.load('./mlp_front_big.pth')
+
+        self.force = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
+        self.predicted_force = None
+        self.count = 0
+        self.zero = True
+        self.oldvel = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
+
+        self.red = np.array([[255., 0., 0.]], dtype=np.float32)
+        self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
     def step(self, actions):
         """ Apply actions, simulate, call self.post_physics_step()
@@ -332,8 +351,82 @@ class LeggedRobot(BaseTask):
 
         if self.cfg.terrain.measure_heights:
             self.measured_heights = self._get_heights()
-        if self.cfg.domain_rand.push_robots and  (self.common_step_counter % self.cfg.domain_rand.push_interval == 0):
-            self._push_robots()
+
+        scale = 1e-2
+
+        if self.count % self.push_interval == 0:
+            self.zero = False
+            self.push_interval_s = random.uniform(0.3, 1.0)
+            self.push_interval = np.ceil(self.push_interval_s / self.dt)
+            max_force = self.cfg.domain_rand.max_push_force
+            # self.force = torch_rand_float(-500, 500, (self.num_envs,3), device=self.device)
+            
+            x_force = torch_rand_float(-2000, 2000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
+            # self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
+            
+            self._push_robots(self.force)
+            self.push_duration = random.uniform(5, 15) # side (5,15), front (5,20), all (5, 20)
+            # tt = np.zeros((2,3), dtype=np.float32)
+            start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.05], device=self.device)
+            end = start + self.force[0] * self.push_duration * self.dt * scale
+            tt = torch.vstack([start, end]).cpu().detach().numpy()
+            # tt[1:] = self.force[0].cpu().detach().numpy()
+            
+            self.gym.add_lines(self.viewer, self.envs[0], 1, tt, self.red)
+        elif self.count % self.push_interval < self.push_duration:
+            self._push_robots(self.force)
+
+            linacc = (self.base_lin_vel - self.oldvel) / self.dt
+            self.oldvel = self.base_lin_vel
+            imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+            self.predicted_force = self.predictor(imu[0]).item()
+            # force_xyz = torch.tensor([0,self.predicted_force,0], device=self.device, dtype=torch.float)
+            force_xyz = torch.tensor([self.predicted_force,0,0], device=self.device, dtype=torch.float)
+            # pred_start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.07], device=self.device)
+            pred_end = pred_start + force_xyz * scale
+            pred_vec = torch.vstack([pred_start, pred_end]).cpu().detach().numpy()
+            self.gym.add_lines(self.viewer, self.envs[0], 1, pred_vec, self.blue)
+        else:
+            self.gym.clear_lines(self.viewer)
+            self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
+            self.zero = True
+
+        # # predict and visualize applied force
+        # linacc = (self.base_lin_vel - self.oldvel) / self.dt
+        # self.oldvel = self.base_lin_vel
+        # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc])
+        # self.predicted_force = self.predictor(imu[0]).item()
+        # force_xyz = torch.tensor([0,self.predicted_force,0], device=self.device, dtype=torch.float)
+        # pred_start = self.root_states[0,0:3]
+        # pred_end = pred_start + force_xyz
+        # pred_vec = torch.vstack([pred_start, pred_end]).cpu().detach().numpy()
+        # self.gym.add_lines(self.viewer, self.envs[0], 1, pred_vec, self.blue)
+        
+
+        self.count += 1
+        # if self.cfg.domain_rand.push_robots and  (self.common_step_counter % self.push_interval == 0):
+        #     # set force duration
+        #     self.count = 1
+
+        #     max_force = self.cfg.domain_rand.max_push_force
+        #     self.force = torch_rand_float(-max_force, max_force, (self.num_envs,3), device=self.device)
+            
+        #     self._push_robots(self.force)
+
+        #     self.count -= 1
+        #     # re-sample new push interval
+        #     if self.count == 0:
+        #         self.push_interval_s = random.uniform(0.2, 0.8)
+        #     # convert to step sizes
+        #     self.push_interval = np.ceil(self.push_interval_s / self.dt)
+        #     self.zero = False
+        # elif self.cfg.domain_rand.push_robots and self.count > 0:
+        #     self._push_robots(self.force)
+        #     self.zero = False
+        # else:
+        #     self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
+        #     self.zero = True
 
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
@@ -412,19 +505,24 @@ class LeggedRobot(BaseTask):
                                                      gymtorch.unwrap_tensor(self.root_states),
                                                      gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
-    def _push_robots(self):
+    def _push_robots(self, f):
         """ Random pushes the robots. Emulates an impulse by setting a randomized base velocity. 
         """
         max_vel = self.cfg.domain_rand.max_push_vel_xy
-        max_force = self.cfg.domain_rand.max_push_force
         self.root_states[:, 7:9] = torch_rand_float(-max_vel, max_vel, (self.num_envs, 2), device=self.device) # lin vel x/y
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_states))
 
-        # forces = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
+        # applies random force to random part of the robot
+        # max_force = self.cfg.domain_rand.max_push_force
+
+        forces = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         # f = torch_rand_float(-max_force, max_force, (self.num_envs,3), device=self.device)
         # forces[:, random.randrange(0,self.num_bodies)] = f
+
+        forces[:, 0] = f # force only applied on body!
         
-        # self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(forces), None, gymapi.ENV_SPACE)
+        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(forces), None, gymapi.LOCAL_SPACE)
+        self.force = f
 
     def _update_terrain_curriculum(self, env_ids):
         """ Implements the game-inspired curriculum.
@@ -742,8 +840,8 @@ class LeggedRobot(BaseTask):
             self.cfg.terrain.curriculum = False
         self.max_episode_length_s = self.cfg.env.episode_length_s
         self.max_episode_length = np.ceil(self.max_episode_length_s / self.dt)
-
-        self.cfg.domain_rand.push_interval = np.ceil(self.cfg.domain_rand.push_interval_s / self.dt)
+        # self.cfg.domain_rand.push_interval = np.ceil(self.cfg.domain_rand.push_interval_s / self.dt)
+        # self.push_interval = np.ceil(self.push_interval_s / self.dt)
 
     def _draw_debug_vis(self):
         """ Draws visualizations for dubugging (slows down simulation a lot).
