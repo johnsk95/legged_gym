@@ -82,7 +82,7 @@ class LeggedRobot(BaseTask):
         # custom: for variable push interval
         self.push_interval_s = self.cfg.domain_rand.push_interval_s
         self.push_interval = np.ceil(self.push_interval_s / self.dt)
-        self.push_duration = 0
+        self.push_duration = -100
 
         self.predictor = MLP()
         # self.predictor = torch.load('./mlp_side_big.pth')
@@ -403,9 +403,9 @@ class LeggedRobot(BaseTask):
             self.push_interval_s = random.uniform(0.8, 1.3)
             self.push_interval = np.ceil(self.push_interval_s / self.dt)
 
-            x_force = torch_rand_float(-2000, 2000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # x_force = torch_rand_float(-2000, 2000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
-            self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
+            # self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
 
             self._push_robots(self.force)
             self.push_duration = random.uniform(5, 20) # side (5,15), front (5,20), all (5, 20)
@@ -437,19 +437,20 @@ class LeggedRobot(BaseTask):
             self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
             self.zero = True
             self.predicted_force = 0.
+            self.push_duration = -100
 
         
-        print(self.commands[0,0])
+        # print(self.commands[0,0])
         # linacc = (self.base_lin_vel - self.oldvel) / self.dt
         # self.oldvel = self.base_lin_vel
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
         # self.predicted_force = self.predictor(imu[0]).item()
         # print('predicted force: ', self.predicted_force)
         
-        if self.predicted_force < -100:
-            self.commands[0, 0] = torch.tensor(0., device=self.device, dtype=torch.float)
-        elif self.predicted_force > 100:
-            self.commands[0, 0] = torch_rand_float(self.command_ranges["lin_vel_x"][0], self.command_ranges["lin_vel_x"][1], (1, 1), device=self.device).squeeze(1)
+        # if self.predicted_force < -100:
+        #     self.commands[0, 0] = torch.tensor(0., device=self.device, dtype=torch.float)
+        # elif self.predicted_force > 100:
+        #     self.commands[0, 0] = torch_rand_float(self.command_ranges["lin_vel_x"][0], self.command_ranges["lin_vel_x"][1], (1, 1), device=self.device).squeeze(1)
 
 
         # # predict and visualize applied force

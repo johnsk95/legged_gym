@@ -129,8 +129,9 @@ def play(args):
             # wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
-        # if not env.zero:
+        if not env.zero:
             # print(f'Predicted: {env.predicted_force}, Target: {env.force[0,0]}')
+            print('Impulse: ', force)
         # print(env.dt)
         # print(env.sim_params.dt)
 
