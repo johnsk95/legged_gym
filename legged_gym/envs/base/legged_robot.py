@@ -85,7 +85,7 @@ class LeggedRobot(BaseTask):
 
         self.predictor = MLP()
         # self.predictor = torch.load('./mlp_side_big.pth')
-        self.predictor = torch.load('./mlp_front_big.pth')
+        self.predictor = torch.load('./mlp_front_500.pth')
 
         self.force = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         self.predicted_force = None
@@ -362,13 +362,13 @@ class LeggedRobot(BaseTask):
             # self.force = torch_rand_float(-500, 500, (self.num_envs,3), device=self.device)
             
             x_force = torch_rand_float(-2000, 2000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
-            self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
-            # self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
+            # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
+            self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
             
             self._push_robots(self.force)
-            self.push_duration = random.uniform(5, 15) # side (5,15), front (5,20), all (5, 20)
+            self.push_duration = random.uniform(5, 20) # side (5,15), front (5,20), all (5, 20)
             # tt = np.zeros((2,3), dtype=np.float32)
-            start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.05], device=self.device)
+            start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.09], device=self.device)
             end = start + self.force[0] * self.push_duration * self.dt * scale
             tt = torch.vstack([start, end]).cpu().detach().numpy()
             # tt[1:] = self.force[0].cpu().detach().numpy()
@@ -383,7 +383,7 @@ class LeggedRobot(BaseTask):
             self.predicted_force = self.predictor(imu[0]).item()
             # force_xyz = torch.tensor([0,self.predicted_force,0], device=self.device, dtype=torch.float)
             force_xyz = torch.tensor([self.predicted_force,0,0], device=self.device, dtype=torch.float)
-            # pred_start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.07], device=self.device)
+            pred_start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.07], device=self.device)
             pred_end = pred_start + force_xyz * scale
             pred_vec = torch.vstack([pred_start, pred_end]).cpu().detach().numpy()
             self.gym.add_lines(self.viewer, self.envs[0], 1, pred_vec, self.blue)
