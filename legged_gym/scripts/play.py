@@ -89,14 +89,14 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    # f = open('write1_side_i2.csv', 'a', newline='')
-    # wr = csv.writer(f)
+    f = open('write1_push.csv', 'a', newline='')
+    wr = csv.writer(f)
 
-    # f2 = open('write2_side_i2.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('write2_push.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
-    # f3 = open('write3_side_i2.csv', 'a', newline='')
-    # wr3 = csv.writer(f3)
+    f3 = open('write3_push.csv', 'a', newline='')
+    wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
@@ -108,9 +108,21 @@ def play(args):
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 
         # if i > 50 and not env.zero: # only record when pushed
-        # if i > 30:
+        if i > 20:
             # info = torch.hstack([imu, force])
+            labels = []
 
+            for n in range(3):
+                if force[n,0] <= -200.:
+                    labels.append(0)
+                elif -200 < force[n,0] <= -100.:
+                    labels.append(1)
+                elif force[n,0] >= 300.:
+                    labels.append(3)
+                else:
+                    labels.append(2)
+            cv = torch.tensor(labels, device=env.device, dtype=torch.float)
+            info = torch.hstack([imu, cv.unsqueeze(1)])
             # dd = torch.hstack([imu, env.force])
             # wr.writerows(imu.tolist() + env.force.tolist())
             # wr.writerows(dd.tolist())
@@ -124,13 +136,15 @@ def play(args):
             # wr3.writerow(imu.tolist() + env.force[2].tolist())
             
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
-            # wr.writerow(info[0].tolist())
-            # wr2.writerow(info[1].tolist())
-            # wr3.writerow(info[2].tolist())
+            wr.writerow(info[0].tolist())
+            wr2.writerow(info[1].tolist())
+            wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
         # if not env.zero:
             # print(f'Predicted: {env.predicted_force}, Target: {env.force[0,0]}')
+        # if not env.zero:
+        #     print('force: ', force)
         # print(env.dt)
         # print(env.sim_params.dt)
 
@@ -176,9 +190,9 @@ def play(args):
             return
 
         env.gym.refresh_actor_root_state_tensor(env.sim)
-    # f.close()
-    # f2.close()
-    # f3.close()
+    f.close()
+    f2.close()
+    f3.close()
 
 if __name__ == '__main__':
     EXPORT_POLICY = True
