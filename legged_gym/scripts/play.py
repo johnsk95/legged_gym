@@ -89,14 +89,14 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    f = open('write1_push.csv', 'a', newline='')
-    wr = csv.writer(f)
+    # f = open('write1_push.csv', 'a', newline='')
+    # wr = csv.writer(f)
 
-    f2 = open('write2_push.csv', 'a', newline='')
-    wr2 = csv.writer(f2)
+    # f2 = open('write2_push.csv', 'a', newline='')
+    # wr2 = csv.writer(f2)
 
-    f3 = open('write3_push.csv', 'a', newline='')
-    wr3 = csv.writer(f3)
+    # f3 = open('write3_push.csv', 'a', newline='')
+    # wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
@@ -112,7 +112,8 @@ def play(args):
             # info = torch.hstack([imu, force])
             labels = []
 
-            for n in range(3):
+            # for n in range(3):
+            for n in range(env.num_envs):
                 if force[n,0] <= -200.:
                     labels.append(0)
                 elif -200 < force[n,0] <= -100.:
@@ -136,9 +137,11 @@ def play(args):
             # wr3.writerow(imu.tolist() + env.force[2].tolist())
             
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
-            wr.writerow(info[0].tolist())
-            wr2.writerow(info[1].tolist())
-            wr3.writerow(info[2].tolist())
+
+
+            # wr.writerow(info[0].tolist())
+            # wr2.writerow(info[1].tolist())
+            # wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
         # if not env.zero:
