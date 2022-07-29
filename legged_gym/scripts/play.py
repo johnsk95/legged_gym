@@ -116,11 +116,15 @@ def play(args):
             for n in range(env.num_envs):
                 if force[n,0] <= -200.:
                     labels.append(0)
+                    print('0:stop')
                 elif -200 < force[n,0] <= -100.:
                     labels.append(1)
+                    print('1:slow down')
                 elif force[n,0] >= 300.:
+                    print('2:noise')
                     labels.append(3)
                 else:
+                    print('3:faster')
                     labels.append(2)
             cv = torch.tensor(labels, device=env.device, dtype=torch.float)
             info = torch.hstack([imu, cv.unsqueeze(1)])
