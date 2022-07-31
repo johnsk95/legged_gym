@@ -133,7 +133,7 @@ def play(args):
         #     # print(f'Predicted: {env.predicted_force}, Target: {env.force[0,0]}')
         #     print('Impulse: ', force)
 
-        print(f'Predicted: {env.pred}, Target: {force}')
+        # print(f'Predicted: {env.pred}, Target: {force}')
         # print(env.dt)
         # print(env.sim_params.dt)
 
