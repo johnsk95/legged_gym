@@ -89,14 +89,14 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    # f = open('write1_push.csv', 'a', newline='')
-    # wr = csv.writer(f)
+    f = open('class1.csv', 'a', newline='')
+    wr = csv.writer(f)
 
-    # f2 = open('write2_push.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('class2.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
-    # f3 = open('write3_push.csv', 'a', newline='')
-    # wr3 = csv.writer(f3)
+    f3 = open('class3.csv', 'a', newline='')
+    wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
@@ -114,18 +114,19 @@ def play(args):
 
             # for n in range(3):
             for n in range(env.num_envs):
-                if force[n,0] <= -200.:
+                if -600. <= force[n,0] <= -300.:
                     labels.append(0)
                     print('0:stop')
-                elif -200 < force[n,0] <= -100.:
+                elif -300. < force[n,0] <= -50.:
                     labels.append(1)
                     print('1:slow down')
-                elif force[n,0] >= 300.:
-                    print('2:noise')
+                elif 100. <= force[n,0] <= 900.:
+                    print('3:faster')
                     labels.append(3)
                 else:
-                    print('3:faster')
+                    print('2:noise')
                     labels.append(2)
+                    
             cv = torch.tensor(labels, device=env.device, dtype=torch.float)
             info = torch.hstack([imu, cv.unsqueeze(1)])
             # dd = torch.hstack([imu, env.force])
@@ -143,9 +144,9 @@ def play(args):
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
 
 
-            # wr.writerow(info[0].tolist())
-            # wr2.writerow(info[1].tolist())
-            # wr3.writerow(info[2].tolist())
+            wr.writerow(info[0].tolist())
+            wr2.writerow(info[1].tolist())
+            wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
         # if not env.zero:
