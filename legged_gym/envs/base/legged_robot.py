@@ -89,7 +89,6 @@ class LeggedRobot(BaseTask):
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.prediction = None
-        self.count = 0
         self.zero = True
         self.oldvel = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
 
@@ -115,18 +114,18 @@ class LeggedRobot(BaseTask):
                     self.enable_viewer_sync = not self.enable_viewer_sync
                 elif evt.action == "force_front" and evt.value > 0:
                     # apply random front force
-                    x_force = torch_rand_float(0, 3000, (self.num_envs,1), device=self.device)
+                    x_force = torch_rand_float(0, 5000, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
-                    self.count = 0
                     self.push_duration = random.uniform(5, 20)
-                    print('applied front: ', self.force)
+                    # print('applied front: ', self.force)
+                    print('applied front')
                 elif evt.action == "force_rear" and evt.value > 0:
                     # apply random rear force
                     x_force = torch_rand_float(-3000, 0, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
-                    self.count = 0
                     self.push_duration = random.uniform(5, 20)
-                    print('applied rear: ', self.force)
+                    # print('applied rear: ', self.force)
+                    print('applied rear')
 
             # fetch results
             if self.device != 'cpu':
@@ -418,9 +417,7 @@ class LeggedRobot(BaseTask):
         #     self.pred = 'NOISE'
         # elif self.prediction == 3:
         #     self.pred = 'SPEED UP'
-                
-        self.count += 1
-
+            
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
 

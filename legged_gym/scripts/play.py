@@ -97,6 +97,7 @@ def play(args):
 
     # f3 = open('write3_side_i2.csv', 'a', newline='')
     # wr3 = csv.writer(f3)
+    init = False
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
@@ -105,6 +106,12 @@ def play(args):
         force = env.force * env.push_duration * env.dt
         root_linacc = (root_linvels - oldvel) / env.dt
 
+        if not env.zero and not init:
+            init = True
+            print('impulse applied: ', force)
+        if env.zero:
+            init = False
+            
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 
         # if i > 50 and not env.zero: # only record when pushed
