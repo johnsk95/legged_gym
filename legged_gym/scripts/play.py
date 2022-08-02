@@ -111,6 +111,8 @@ def play(args):
             print('impulse applied: ', force)
         if env.zero:
             init = False
+
+        print(env.robot_action)
             
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 

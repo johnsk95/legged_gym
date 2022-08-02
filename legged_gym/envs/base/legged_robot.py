@@ -85,7 +85,7 @@ class LeggedRobot(BaseTask):
         self.push_duration = 0
 
         self.predictor = MLP()
-        self.predictor = torch.load('./classifier_50.pth')
+        self.predictor = torch.load('./classifier_v2.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.prediction = None
@@ -95,7 +95,8 @@ class LeggedRobot(BaseTask):
         self.red = np.array([[255., 0., 0.]], dtype=np.float32)
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
-        self.pred = None
+        self.robot_action = None
+        self.window_size = 5
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_R, "force_rear")
@@ -408,15 +409,33 @@ class LeggedRobot(BaseTask):
             self.zero = True
             self.push_duration = 0
 
-        # self.pred = None
-        # if self.prediction == 0:
-        #     self.pred = 'STOP'
-        # elif self.prediction == 1:
-        #     self.pred = 'SLOW DOWN'
-        # elif self.prediction == 2:
-        #     self.pred = 'NOISE'
-        # elif self.prediction == 3:
-        #     self.pred = 'SPEED UP'
+        linacc = (self.base_lin_vel - self.oldvel) / self.dt
+        self.oldvel = self.base_lin_vel
+        imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+
+        # 1. let run for a few rounds (t > W)
+        # 2. feed in current and previous W-1 imu data to predictor
+        # 3. decide on self.action based on consecutive majority voting
+        
+        _, p = self.predictor(imu[0]).max(0)
+        self.prediction = p.item()
+
+        self.robot_action = None
+        if self.prediction == 0:
+            self.robot_action = 'STOP'
+        elif self.prediction == 1:
+            self.robot_action = 'SLOW DOWN'
+        elif self.prediction == 3:
+            self.robot_action = 'SPEED UP'
+        else: 
+            self.robot_action = None
+
+        if self.robot_action == 'STOP':
+            self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+        elif self.robot_action == 'SLOW DOWN' and self.commands[0,0] > 0:
+            self.commands[0,0] -= 0.1
+        elif self.robot_action == 'SPEED UP':
+            self.commands[0,0] += 0.1
             
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
