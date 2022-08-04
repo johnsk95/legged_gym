@@ -113,7 +113,8 @@ def play(args):
         if env.zero:
             init = False
 
-        print(ACTIONS[env.robot_action])
+        if env.robot_action != 2:
+            print(ACTIONS[env.robot_action])
             
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 
