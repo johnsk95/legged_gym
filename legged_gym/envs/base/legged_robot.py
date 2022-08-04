@@ -87,7 +87,8 @@ class LeggedRobot(BaseTask):
         self.push_duration = 0
 
         self.predictor = MLP()
-        self.predictor = torch.load('./classifier_v2.pth')
+        # self.predictor = torch.load('./classifier_v2.pth')
+        self.predictor = torch.load('./classifier_100.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
