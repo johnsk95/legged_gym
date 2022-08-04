@@ -98,6 +98,7 @@ def play(args):
     # f3 = open('write3_side_i2.csv', 'a', newline='')
     # wr3 = csv.writer(f3)
     init = False
+    ACTIONS = ['STOP', 'SLOW DOWN', 'NOISE', 'FASTER']
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
@@ -112,7 +113,7 @@ def play(args):
         if env.zero:
             init = False
 
-        print(env.robot_action)
+        print(ACTIONS[env.robot_action])
             
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 

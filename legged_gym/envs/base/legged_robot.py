@@ -51,6 +51,8 @@ from legged_gym.utils.math import quat_apply_yaw, wrap_to_pi, torch_rand_sqrt_fl
 from legged_gym.utils.helpers import class_to_dict
 from .legged_robot_config import LeggedRobotCfg
 
+from collections import Counter
+
 class LeggedRobot(BaseTask):
     def __init__(self, cfg: LeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
         """ Parses the provided config file,
@@ -88,15 +90,17 @@ class LeggedRobot(BaseTask):
         self.predictor = torch.load('./classifier_v2.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
-        self.prediction = None
+        self.predictions = None
         self.zero = True
         self.oldvel = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
 
         self.red = np.array([[255., 0., 0.]], dtype=np.float32)
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
-        self.robot_action = None
+        self.robot_action = 2
         self.window_size = 5
+        self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
+        self.count = 0
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_R, "force_rear")
@@ -417,25 +421,44 @@ class LeggedRobot(BaseTask):
         # 2. feed in current and previous W-1 imu data to predictor
         # 3. decide on self.action based on consecutive majority voting
         
-        _, p = self.predictor(imu[0]).max(0)
-        self.prediction = p.item()
+        # push new imu data to stack
+        self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
-        self.robot_action = None
-        if self.prediction == 0:
-            self.robot_action = 'STOP'
-        elif self.prediction == 1:
-            self.robot_action = 'SLOW DOWN'
-        elif self.prediction == 3:
-            self.robot_action = 'SPEED UP'
-        else: 
-            self.robot_action = None
+        # 1. let run for a few rounds (t > W)
+        if self.count > 30:
+            # 2. feed in current and previous W-1 imu data to predictor
+            _, p = self.predictor(self.history).max(1)
+            self.predictions = p.tolist()
+        # _, p = self.predictor(imu[0]).max(0)
+        # self.prediction = p.item()
 
-        if self.robot_action == 'STOP':
+        # 3. decide on self.action based on consecutive majority voting
+            freq = Counter(self.predictions)
+            majority = max(freq, key=freq.get) # get the label with the max number of predictions
+            if majority != 2 and freq[majority] > (self.window_size//2):
+                # check if max label is consecutive (skipped)
+                id = []
+                for i, e in enumerate(self.predictions):
+                    if e == majority:
+                        id.append(i)
+                # print('indices: ', id)
+                # assign majority prediction as robot action
+                if len(id) == self.window_size:
+                    self.robot_action = majority
+                else:
+                    self.robot_action = 2
+            else:
+                self.robot_action = 2
+
+        # apply corresponding speed commands to action
+        if self.robot_action == 0:
             self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
-        elif self.robot_action == 'SLOW DOWN' and self.commands[0,0] > 0:
+        elif self.robot_action == 1 and self.commands[0,0] > 0.1:
             self.commands[0,0] -= 0.1
-        elif self.robot_action == 'SPEED UP':
-            self.commands[0,0] += 0.1
+        elif self.robot_action == 3 and self.commands[0,0] < 2:
+            self.commands[0,0] += 0.05
+
+        self.count += 1
             
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
