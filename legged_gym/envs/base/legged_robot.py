@@ -88,7 +88,7 @@ class LeggedRobot(BaseTask):
 
         self.predictor = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
-        self.predictor = torch.load('./classifier_100.pth')
+        self.predictor = torch.load('./classifier_v2_150.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
@@ -124,14 +124,14 @@ class LeggedRobot(BaseTask):
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
                     self.push_duration = random.uniform(5, 20)
                     # print('applied front: ', self.force)
-                    print('applied front')
+                    print('KEY: applied front')
                 elif evt.action == "force_rear" and evt.value > 0:
                     # apply random rear force
                     x_force = torch_rand_float(-3000, 0, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
                     self.push_duration = random.uniform(5, 20)
                     # print('applied rear: ', self.force)
-                    print('applied rear')
+                    print('KEY: applied rear')
 
             # fetch results
             if self.device != 'cpu':
@@ -456,7 +456,8 @@ class LeggedRobot(BaseTask):
             self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
         elif self.robot_action == 1 and self.commands[0,0] > 0.1:
             self.commands[0,0] -= 0.1
-        elif self.robot_action == 3 and self.commands[0,0] < 2:
+        # elif self.robot_action == 3 and self.commands[0,0] < 2:
+        elif self.robot_action == 3:
             self.commands[0,0] += 0.05
 
         self.count += 1

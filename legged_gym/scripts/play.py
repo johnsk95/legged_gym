@@ -110,6 +110,15 @@ def play(args):
         if not env.zero and not init:
             init = True
             print('impulse applied: ', force)
+            if -600. <= force[0,0] <= -300.:
+                print('GT: STOP ', force[0,0])
+            elif -300. < force[0,0] <= -50.:
+                print('GT: SLOW DOWN ', force[0,0])
+            elif 300. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
+                print('GT: FASTER ', force[0,0])
+            else:
+                print('GT: NOISE ', force[0,0])
+
         if env.zero:
             init = False
 
