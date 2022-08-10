@@ -99,7 +99,8 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        self.window_size = 5
+        self.window_size = 10
+        # self.window_size = 5
         self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
         self.count = 0
 
@@ -130,6 +131,7 @@ class LeggedRobot(BaseTask):
                     x_force = torch_rand_float(-3000, 0, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
                     self.push_duration = random.uniform(5, 20)
+                    print("duration: ", self.push_duration)
                     # print('applied rear: ', self.force)
                     print('KEY: applied rear')
 
@@ -438,18 +440,21 @@ class LeggedRobot(BaseTask):
             majority = max(freq, key=freq.get) # get the label with the max number of predictions
             if majority != 2 and freq[majority] > (self.window_size//2):
                 # check if max label is consecutive (skipped)
-                id = []
-                for i, e in enumerate(self.predictions):
-                    if e == majority:
-                        id.append(i)
-                # print('indices: ', id)
-                # assign majority prediction as robot action
-                if len(id) == self.window_size:
-                    self.robot_action = majority
-                else:
-                    self.robot_action = 2
+                # id = []
+                # for i, e in enumerate(self.predictions):
+                #     if e == majority:
+                #         id.append(i)
+                # # print('indices: ', id)
+                # # assign majority prediction as robot action
+                # if len(id) == self.window_size:
+                #     self.robot_action = majority
+                # else:
+                #     self.robot_action = 2
+                self.robot_action = majority
             else:
                 self.robot_action = 2
+        else: 
+            self.count += 1
 
         # apply corresponding speed commands to action
         if self.robot_action == 0:
@@ -457,10 +462,10 @@ class LeggedRobot(BaseTask):
         elif self.robot_action == 1 and self.commands[0,0] > 0.1:
             self.commands[0,0] -= 0.1
         # elif self.robot_action == 3 and self.commands[0,0] < 2:
-        elif self.robot_action == 3:
-            self.commands[0,0] += 0.05
+        # # elif self.robot_action == 3:
+        #     self.commands[0,0] += 0.05
 
-        self.count += 1
+        # self.count += 1
             
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
