@@ -93,7 +93,7 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./classifier_v2.pth')
         # self.predictor = torch.load('./classifier_v2_150.pth')
         self.predictor_0 = torch.load('./colab/classifier_0all_100.pth')
-        self.predictor_05 = torch.load('./colab/classifier_05_100.pth')
+        self.predictor_05 = torch.load('./colab/classifier_05v2_100.pth')
         self.predictor_10 = torch.load('./colab/classifier_10_100.pth')
         self.predictor_15 = torch.load('./colab/classifier_15_100.pth')
         
@@ -440,7 +440,7 @@ class LeggedRobot(BaseTask):
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
         # 1. let run for a few rounds (t > W)
-        print('speed: ', self.commands[0,0])
+        # print('speed: ', self.commands[0,0].item())
         if self.count > 30:
             # state machine
             if self.commands[0,0] > 0:
@@ -497,6 +497,8 @@ class LeggedRobot(BaseTask):
                 self.robot_action = 2
         else: 
             self.count += 1
+
+        print('speed: ', self.commands[0,0].item())
 
         # apply corresponding speed commands to action
         # if self.robot_action == 0:
