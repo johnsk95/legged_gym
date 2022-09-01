@@ -86,9 +86,17 @@ class LeggedRobot(BaseTask):
         self.push_interval = np.ceil(self.push_interval_s / self.dt)
         self.push_duration = 0
 
-        self.predictor = MLP()
+        self.predictor_0 = MLP()
+        self.predictor_05 = MLP()
+        self.predictor_10 = MLP()
+        self.predictor_15 = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
-        self.predictor = torch.load('./classifier_v2_150.pth')
+        # self.predictor = torch.load('./classifier_v2_150.pth')
+        self.predictor_0 = torch.load('./colab/classifier_0all_100.pth')
+        self.predictor_05 = torch.load('./colab/classifier_05_100.pth')
+        self.predictor_10 = torch.load('./colab/classifier_10_100.pth')
+        self.predictor_15 = torch.load('./colab/classifier_15_100.pth')
+        
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
@@ -99,7 +107,7 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        self.window_size = 10
+        self.window_size = 5
         # self.window_size = 5
         self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
         self.count = 0
@@ -423,14 +431,48 @@ class LeggedRobot(BaseTask):
         # 1. let run for a few rounds (t > W)
         # 2. feed in current and previous W-1 imu data to predictor
         # 3. decide on self.action based on consecutive majority voting
+
+        # start state at 1.0 m/s
+        self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
+        predictor = self.predictor_10
         
         # push new imu data to stack
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
         # 1. let run for a few rounds (t > W)
+        print('speed: ', self.commands[0,0])
         if self.count > 30:
+            # state machine
+            if self.commands[0,0] > 0:
+                if self.robot_action == 0:
+                    predictor = self.predictor_0
+                    self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+
+                elif self.commands[0,0] == 1.5:
+                    if self.robot_action == 1:
+                        predictor = self.predictor_10
+                        self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
+                elif self.commands[0,0] == 1.0:
+                    if self.robot_action == 1:
+                        predictor = self.predictor_05
+                        self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
+                    elif self.robot_action == 3:
+                        predictor = self.predictor_15
+                        self.commands[0,0] = torch.tensor(1.5, device=self.device, dtype=torch.float)
+                elif self.commands[0,0] == 0.5:
+                    if self.robot_action == 1:
+                        predictor = self.predictor_0
+                        self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+                    elif self.robot_action == 3:
+                        predictor = self.predictor_10
+                        self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
+            else:
+                if self.robot_action == 3:
+                    predictor = self.predictor_05
+                    self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
+
             # 2. feed in current and previous W-1 imu data to predictor
-            _, p = self.predictor(self.history).max(1)
+            _, p = predictor(self.history).max(1)
             self.predictions = p.tolist()
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
@@ -457,15 +499,13 @@ class LeggedRobot(BaseTask):
             self.count += 1
 
         # apply corresponding speed commands to action
-        if self.robot_action == 0:
-            self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
-        elif self.robot_action == 1 and self.commands[0,0] > 0.1:
-            self.commands[0,0] -= 0.1
+        # if self.robot_action == 0:
+        #     self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+        # elif self.robot_action == 1 and self.commands[0,0] > 0.1:
+        #     self.commands[0,0] -= 0.1
         # elif self.robot_action == 3 and self.commands[0,0] < 2:
         # # elif self.robot_action == 3:
         #     self.commands[0,0] += 0.05
-
-        # self.count += 1
             
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
