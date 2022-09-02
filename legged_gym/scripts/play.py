@@ -108,23 +108,25 @@ def play(args):
         root_linacc = (root_linvels - oldvel) / env.dt
         ac = ACTIONS[env.robot_action]
 
+        # print(ACTIONS[env.robot_action])
+
         if not env.zero and not init:
             init = True
             print('impulse applied: ', force)
             if -600. <= force[0,0] <= -300.:
-                print(f'GT: STOP    Pred: ', ac)
+                print('GT: STOP')
             elif -300. < force[0,0] <= -50.:
-                print('GT: SLOW DOWN    Pred: ', ac)
+                print('GT: SLOW DOWN')
             elif 300. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
-                print('GT: FASTER   Pred: ', ac)
+                print('GT: FASTER')
             else:
-                print('GT: NOISE    Pred: ', ac)
+                print('GT: NOISE')
 
         if env.zero:
             init = False
 
-        # if env.robot_action != 2:
-        #     print(ACTIONS[env.robot_action])
+        if env.robot_action != 2:
+            print('Pred: ', ACTIONS[env.robot_action])
             
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 

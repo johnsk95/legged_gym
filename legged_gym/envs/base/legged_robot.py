@@ -86,6 +86,7 @@ class LeggedRobot(BaseTask):
         self.push_interval = np.ceil(self.push_interval_s / self.dt)
         self.push_duration = 0
 
+        self.triggered = False # to prevent consecutive detections, False when back to noise
         self.predictor_0 = MLP()
         self.predictor_05 = MLP()
         self.predictor_10 = MLP()
@@ -97,6 +98,8 @@ class LeggedRobot(BaseTask):
         self.predictor_10 = torch.load('./colab/classifier_10_100.pth')
         self.predictor_15 = torch.load('./colab/classifier_15_100.pth')
         
+        self.predictor = self.predictor_10
+        self.spd = self.commands[0,0]
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
@@ -107,7 +110,7 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        self.window_size = 5
+        self.window_size = 20
         # self.window_size = 5
         self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
         self.count = 0
@@ -433,46 +436,49 @@ class LeggedRobot(BaseTask):
         # 3. decide on self.action based on consecutive majority voting
 
         # start state at 1.0 m/s
-        self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
-        predictor = self.predictor_10
+        # self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
+        # predictor = self.predictor_10
         
         # push new imu data to stack
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
         # 1. let run for a few rounds (t > W)
-        # print('speed: ', self.commands[0,0].item())
-        if self.count > 30:
+        self.commands[0,0] = self.spd
+        
+        if self.count > 30:    
             # state machine
-            if self.commands[0,0] > 0:
-                if self.robot_action == 0:
-                    predictor = self.predictor_0
-                    self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
-
-                elif self.commands[0,0] == 1.5:
-                    if self.robot_action == 1:
-                        predictor = self.predictor_10
-                        self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
-                elif self.commands[0,0] == 1.0:
-                    if self.robot_action == 1:
-                        predictor = self.predictor_05
-                        self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
-                    elif self.robot_action == 3:
-                        predictor = self.predictor_15
-                        self.commands[0,0] = torch.tensor(1.5, device=self.device, dtype=torch.float)
-                elif self.commands[0,0] == 0.5:
-                    if self.robot_action == 1:
-                        predictor = self.predictor_0
-                        self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
-                    elif self.robot_action == 3:
-                        predictor = self.predictor_10
-                        self.commands[0,0] = torch.tensor(1., device=self.device, dtype=torch.float)
+            if self.spd.item() > 0:
+                if not self.triggered:
+                    if self.robot_action == 0:
+                        self.predictor = self.predictor_0
+                        self.spd = torch.tensor(0., device=self.device, dtype=torch.float)
+                    elif self.spd.item() == 1.5:
+                        if self.robot_action == 1:
+                            self.predictor = self.predictor_10
+                            self.spd = torch.tensor(1., device=self.device, dtype=torch.float)
+                    elif self.spd.item() == 1.0:
+                        if self.robot_action == 1:
+                            self.predictor = self.predictor_05
+                            self.spd = torch.tensor(0.5, device=self.device, dtype=torch.float)
+                        elif self.robot_action == 3:
+                            self.predictor = self.predictor_15
+                            self.spd = torch.tensor(1.5, device=self.device, dtype=torch.float)
+                    elif self.spd.item() == 0.5:
+                        if self.robot_action == 1:
+                            self.predictor = self.predictor_0
+                            self.spd = torch.tensor(0., device=self.device, dtype=torch.float)
+                        elif self.robot_action == 3:
+                            self.predictor = self.predictor_10
+                            self.spd = torch.tensor(1., device=self.device, dtype=torch.float)
             else:
-                if self.robot_action == 3:
-                    predictor = self.predictor_05
-                    self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
+                if self.robot_action == 3 and not self.triggered:
+                    self.predictor = self.predictor_05
+                    self.spd = torch.tensor(0.5, device=self.device, dtype=torch.float)
+            if self.spd.item() != self.commands[0,0].item() and self.robot_action != 2:
+                self.triggered = True
 
             # 2. feed in current and previous W-1 imu data to predictor
-            _, p = predictor(self.history).max(1)
+            _, p = self.predictor(self.history).max(1)
             self.predictions = p.tolist()
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
@@ -482,23 +488,28 @@ class LeggedRobot(BaseTask):
             majority = max(freq, key=freq.get) # get the label with the max number of predictions
             if majority != 2 and freq[majority] > (self.window_size//2):
                 # check if max label is consecutive (skipped)
-                # id = []
-                # for i, e in enumerate(self.predictions):
-                #     if e == majority:
-                #         id.append(i)
+                id = []
+                for i, e in enumerate(self.predictions):
+                    if e == majority:
+                        id.append(i)
                 # # print('indices: ', id)
                 # # assign majority prediction as robot action
                 # if len(id) == self.window_size:
-                #     self.robot_action = majority
-                # else:
-                #     self.robot_action = 2
-                self.robot_action = majority
+                if len(id) > self.window_size//2:
+                    self.robot_action = majority
+                else:
+                    self.robot_action = 2
+                # self.robot_action = majority ## will not work if window size is large
             else:
                 self.robot_action = 2
         else: 
             self.count += 1
 
-        print('speed: ', self.commands[0,0].item())
+        # prevent multiple action applicatons to consecutive predictions
+        if self.robot_action == 2:
+            self.triggered = False
+
+        # print('speed: ', self.commands[0,0].item())
 
         # apply corresponding speed commands to action
         # if self.robot_action == 0:
