@@ -88,7 +88,7 @@ class LeggedRobot(BaseTask):
 
         self.predictor = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
-        self.predictor = torch.load('./colab/classifier_0all_100.pth')
+        self.predictor = torch.load('./colab/classifier_05v3_100.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
@@ -423,7 +423,7 @@ class LeggedRobot(BaseTask):
         # 3. decide on self.action based on consecutive majority voting
         
         # push new imu data to stack
-        self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+        self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
         # 1. let run for a few rounds (t > W)
