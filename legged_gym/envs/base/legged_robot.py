@@ -362,7 +362,14 @@ class LeggedRobot(BaseTask):
             max_force = self.cfg.domain_rand.max_push_force
             # self.force = torch_rand_float(-500, 500, (self.num_envs,3), device=self.device)
             
-            x_force = torch_rand_float(-2000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            p = random.uniform(0,1)
+            # generate different forces with probability
+            if p < 0.66:
+                x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            else:
+                x_force = torch_rand_float(0, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+
+            # x_force = torch_rand_float(-2000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
             self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
             

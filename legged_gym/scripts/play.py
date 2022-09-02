@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    f = open('class1b.csv', 'a', newline='')
+    f = open('class1_0.5_upper.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('class2b.csv', 'a', newline='')
+    f2 = open('class2_0.5_upper.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('class3b.csv', 'a', newline='')
+    f3 = open('class3_0.5_upper.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -120,7 +120,7 @@ def play(args):
                 elif -300. < force[n,0] <= -50.:
                     labels.append(1)
                     print('1:slow down')
-                elif 300. <= force[n,0] <= 900.:
+                elif 500. <= force[n,0] <= 900.:
                     print('3:faster')
                     labels.append(3)
                 else:
