@@ -88,7 +88,7 @@ class LeggedRobot(BaseTask):
 
         self.predictor = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
-        self.predictor = torch.load('./classifier_v2_150.pth')
+        self.predictor = torch.load('./colab/classifier_0all_100.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
@@ -99,7 +99,7 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        self.window_size = 5
+        self.window_size = 20
         self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
         self.count = 0
 
@@ -423,6 +423,7 @@ class LeggedRobot(BaseTask):
         # 3. decide on self.action based on consecutive majority voting
         
         # push new imu data to stack
+        self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
         # 1. let run for a few rounds (t > W)
@@ -444,7 +445,8 @@ class LeggedRobot(BaseTask):
                         id.append(i)
                 # print('indices: ', id)
                 # assign majority prediction as robot action
-                if len(id) == self.window_size:
+                # if len(id) == self.window_size:
+                if len(id) > self.window_size//2:
                     self.robot_action = majority
                 else:
                     self.robot_action = 2
@@ -452,13 +454,13 @@ class LeggedRobot(BaseTask):
                 self.robot_action = 2
 
         # apply corresponding speed commands to action
-        if self.robot_action == 0:
-            self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
-        elif self.robot_action == 1 and self.commands[0,0] > 0.1:
-            self.commands[0,0] -= 0.1
-        # elif self.robot_action == 3 and self.commands[0,0] < 2:
-        elif self.robot_action == 3:
-            self.commands[0,0] += 0.05
+        # if self.robot_action == 0:
+        #     self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+        # elif self.robot_action == 1 and self.commands[0,0] > 0.1:
+        #     self.commands[0,0] -= 0.1
+        # # elif self.robot_action == 3 and self.commands[0,0] < 2:
+        # elif self.robot_action == 3:
+        #     self.commands[0,0] += 0.05
 
         self.count += 1
             
