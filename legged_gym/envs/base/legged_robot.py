@@ -93,10 +93,10 @@ class LeggedRobot(BaseTask):
         self.predictor_15 = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
         # self.predictor = torch.load('./classifier_v2_150.pth')
-        self.predictor_0 = torch.load('./colab/classifier_0all_100.pth')
-        self.predictor_05 = torch.load('./colab/classifier_05v2_100.pth')
-        self.predictor_10 = torch.load('./colab/classifier_10_100.pth')
-        self.predictor_15 = torch.load('./colab/classifier_15_100.pth')
+        self.predictor_0 = torch.load('./checkpoints/classifier_0allbal_100.pth')
+        self.predictor_05 = torch.load('./checkpoints/classifier_05bal_100.pth')
+        self.predictor_10 = torch.load('./checkpoints/classifier_10bal_100.pth')
+        self.predictor_15 = torch.load('./checkpoints/classifier_15bal_100.pth')
         
         self.predictor = self.predictor_10
         self.spd = self.commands[0,0]
@@ -117,6 +117,12 @@ class LeggedRobot(BaseTask):
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_R, "force_rear")
+
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_1, "force_stop")
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_2, "force_slow")
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_3, "force_fast")
+        # self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_4, "force_rear")
+
 
     def render(self, sync_frame_time=True):
         if self.viewer:
@@ -145,6 +151,24 @@ class LeggedRobot(BaseTask):
                     print("duration: ", self.push_duration)
                     # print('applied rear: ', self.force)
                     print('KEY: applied rear')
+                elif evt.action == "force_stop" and evt.value > 0:
+                    # apply random rear force
+                    x_force = torch_rand_float(-2001, -2000, (self.num_envs,1), device=self.device)
+                    self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
+                    self.push_duration = 15
+                    print('KEY: applied STOP')
+                elif evt.action == "force_slow" and evt.value > 0:
+                    # apply random rear force
+                    x_force = torch_rand_float(-1001, -1000, (self.num_envs,1), device=self.device)
+                    self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
+                    self.push_duration = 10
+                    print('KEY: applied SLOW')
+                elif evt.action == "force_fast" and evt.value > 0:
+                    # apply random rear force
+                    x_force = torch_rand_float(4000, 4001, (self.num_envs,1), device=self.device)
+                    self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
+                    self.push_duration = 10
+                    print('KEY: applied FAST')
 
             # fetch results
             if self.device != 'cpu':
@@ -420,12 +444,19 @@ class LeggedRobot(BaseTask):
         scale = 1e-2
 
         if self.push_duration > 0:
+            start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.09], device=self.device)
+            end = start + self.force[0] * self.push_duration * self.dt * scale
+            tt = torch.vstack([start, end]).cpu().detach().numpy()
+
             self.zero = False
             self._push_robots(self.force)
             self.push_duration -= 1
+            
+            self.gym.add_lines(self.viewer, self.envs[0], 1, tt, self.red)
         else:
             self.zero = True
             self.push_duration = 0
+            self.gym.clear_lines(self.viewer)
 
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
         self.oldvel = self.base_lin_vel
@@ -495,7 +526,7 @@ class LeggedRobot(BaseTask):
                 # # print('indices: ', id)
                 # # assign majority prediction as robot action
                 # if len(id) == self.window_size:
-                if len(id) > self.window_size//2:
+                if len(id) > 2*self.window_size//3:
                     self.robot_action = majority
                 else:
                     self.robot_action = 2

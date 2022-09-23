@@ -112,7 +112,7 @@ def play(args):
 
         if not env.zero and not init:
             init = True
-            print('impulse applied: ', force)
+            # print('impulse applied: ', force)
             if -600. <= force[0,0] <= -300.:
                 print('GT: STOP')
             elif -300. < force[0,0] <= -50.:
