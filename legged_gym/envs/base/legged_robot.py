@@ -531,7 +531,7 @@ class LeggedRobot(BaseTask):
 
         forces[:, 0] = f # force only applied on body!
         
-        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(forces), None, gymapi.LOCAL_SPACE)
+        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(forces), None, gymapi.LOCAL_SPACE) #comment out for no push
         self.force = f
 
     def _update_terrain_curriculum(self, env_ids):
