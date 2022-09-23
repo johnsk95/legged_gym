@@ -111,21 +111,21 @@ def play(args):
             init = True
             print('impulse applied: ', force)
             if -600. <= force[0,0] <= -300.:
-                print('GT: STOP ', force[0,0])
+                print('GT: STOP')
             elif -300. < force[0,0] <= -50.:
-                print('GT: SLOW DOWN ', force[0,0])
+                print('GT: SLOW DOWN')
             elif 300. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
-                print('GT: FASTER ', force[0,0])
+                print('GT: FASTER')
             else:
-                print('GT: NOISE ', force[0,0])
+                print('GT: NOISE')
 
         if env.zero:
             init = False
 
-        # if env.robot_action != 2:
-        #     print(ACTIONS[env.robot_action])
+        if env.robot_action != 2:
+            print(ACTIONS[env.robot_action])
 
-        print(ACTIONS[env.robot_action])
+        # print(ACTIONS[env.robot_action])
             
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 
