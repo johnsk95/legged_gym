@@ -95,8 +95,8 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./classifier_v2_150.pth')
         self.predictor_0 = torch.load('./checkpoints/classifier_0allbal_100.pth')
         self.predictor_05 = torch.load('./checkpoints/classifier_05bal_100.pth')
-        self.predictor_10 = torch.load('./checkpoints/classifier_10bal_100.pth')
-        self.predictor_15 = torch.load('./checkpoints/classifier_15bal_100.pth')
+        self.predictor_10 = torch.load('./checkpoints/classifier_10_100.pth')
+        self.predictor_15 = torch.load('./checkpoints/classifier_15_100.pth')
         
         self.predictor = self.predictor_10
         self.spd = self.commands[0,0]
@@ -165,7 +165,7 @@ class LeggedRobot(BaseTask):
                     print('KEY: applied SLOW')
                 elif evt.action == "force_fast" and evt.value > 0:
                     # apply random rear force
-                    x_force = torch_rand_float(4000, 4001, (self.num_envs,1), device=self.device)
+                    x_force = torch_rand_float(3500, 3501, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
                     self.push_duration = 10
                     print('KEY: applied FAST')
@@ -526,7 +526,7 @@ class LeggedRobot(BaseTask):
                 # # print('indices: ', id)
                 # # assign majority prediction as robot action
                 # if len(id) == self.window_size:
-                if len(id) > 2*self.window_size//3:
+                if len(id) > self.window_size//2:
                     self.robot_action = majority
                 else:
                     self.robot_action = 2

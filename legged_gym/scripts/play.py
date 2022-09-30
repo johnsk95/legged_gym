@@ -117,7 +117,7 @@ def play(args):
                 print('GT: STOP')
             elif -300. < force[0,0] <= -50.:
                 print('GT: SLOW DOWN')
-            elif 300. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
+            elif 500. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
                 print('GT: FASTER')
             else:
                 print('GT: NOISE')
