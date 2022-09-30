@@ -89,23 +89,26 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    f = open('sample_walking.csv', 'a', newline='')
+    # f = open('just_walk.csv', 'a', newline='')
+    # wr = csv.writer(f)
+    f = open('class1_0.5_upper.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    # f2 = open('class2_0.5_upper.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('class2_0.5_upper.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
-    # f3 = open('class3_0.5_upper.csv', 'a', newline='')
-    # wr3 = csv.writer(f3)
+    f3 = open('class3_0.5_upper.csv', 'a', newline='')
+    wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
         #     f.write(f'{root_tensor[0,3:].tolist()}, {env.force[0].tolist()}\n')
         # print(env.force[0].tolist())
         force = env.force * env.push_duration * env.dt
-        root_linacc = (root_linvels - oldvel) / env.dt
+        # root_linacc = (root_linvels - oldvel) / env.dt
 
-        imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
 
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
