@@ -126,7 +126,8 @@ def play(args):
             init = False
 
         if env.robot_action != 2:
-            print('Pred: ', ACTIONS[env.robot_action])
+            # print('Pred: ', ACTIONS[env.robot_action])
+            init = False
             
         imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 
