@@ -408,7 +408,7 @@ class LeggedRobot(BaseTask):
 
         if self.push_duration > 0:
             self.zero = False
-            self._push_robots(self.force)
+            self._push_robots(self.force) erased for continuous walking
             self.push_duration -= 1
         else:
             self.zero = True
@@ -423,7 +423,7 @@ class LeggedRobot(BaseTask):
         # 3. decide on self.action based on consecutive majority voting
         
         # push new imu data to stack
-        self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
+        # self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
 
         # 1. let run for a few rounds (t > W)
