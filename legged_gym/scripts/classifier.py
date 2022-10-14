@@ -19,7 +19,7 @@ class MLP(nn.Module):
     super().__init__()
     # self.soft = nn.Softmax(dim=1)
     self.layers = nn.Sequential(
-      nn.Linear(34, 64),
+      nn.Linear(31, 64),
       nn.ReLU(),
       nn.Linear(64, 128),
       nn.ReLU(),
@@ -37,12 +37,12 @@ class MLP(nn.Module):
     '''
     return self.layers(x)
 
-def test():
-  predictor = MLP()
+# def test():
+#   predictor = MLP()
 
-  predictor = torch.load('classifier_20.pth')
+#   predictor = torch.load('classifier_20.pth')
 
-  x = torch.tensor([ 3.7442e-02, -1.4912e-03,  3.0854e-02,  9.9882e-01, -2.1341e-01,
-          4.3084e-01, -6.8637e-05,  2.1363e+01, -1.1008e+00, -2.0857e+00]).to(device)
+#   x = torch.tensor([ 3.7442e-02, -1.4912e-03,  3.0854e-02,  9.9882e-01, -2.1341e-01,
+#           4.3084e-01, -6.8637e-05,  2.1363e+01, -1.1008e+00, -2.0857e+00]).to(device)
 
-  print(predictor(x))
+#   print(predictor(x))

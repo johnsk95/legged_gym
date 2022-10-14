@@ -93,10 +93,14 @@ class LeggedRobot(BaseTask):
         self.predictor_15 = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
         # self.predictor = torch.load('./classifier_v2_150.pth')
-        self.predictor_0 = torch.load('./checkpoints/classifier_0allbal_100.pth')
-        self.predictor_05 = torch.load('./checkpoints/classifier_05bal_100.pth')
-        self.predictor_10 = torch.load('./checkpoints/classifier_10_100.pth')
-        self.predictor_15 = torch.load('./checkpoints/classifier_15_100.pth')
+        self.predictor_0 = torch.load('./checkpoints/refined/classifier_0all_200.pth')
+        self.predictor_05 = torch.load('./checkpoints/refined/classifier_05_200.pth')
+        self.predictor_10 = torch.load('./checkpoints/refined/classifier_10_200.pth')
+        self.predictor_15 = torch.load('./checkpoints/refined/classifier_15_200.pth')
+        # self.predictor_0 = torch.load('./checkpoints/classifier_0allbal_100.pth')
+        # self.predictor_05 = torch.load('./checkpoints/classifier_05bal_100.pth')
+        # self.predictor_10 = torch.load('./checkpoints/classifier_10bal_100.pth')
+        # self.predictor_15 = torch.load('./checkpoints/classifier_15bal_100.pth')
         
         self.predictor = self.predictor_10
         self.spd = self.commands[0,0]
@@ -112,7 +116,7 @@ class LeggedRobot(BaseTask):
         self.robot_action = 2
         self.window_size = 20
         # self.window_size = 5
-        self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
+        self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
         self.count = 0
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
@@ -460,7 +464,8 @@ class LeggedRobot(BaseTask):
 
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
         self.oldvel = self.base_lin_vel
-        imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+        # imu = torch.hstack([self.base_quat, self.base_ang_vel, self.dof_pos, self.dof_vel])
+        imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
 
         # 1. let run for a few rounds (t > W)
         # 2. feed in current and previous W-1 imu data to predictor
@@ -471,10 +476,25 @@ class LeggedRobot(BaseTask):
         # predictor = self.predictor_10
         
         # push new imu data to stack
-        self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
+        self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 31...
 
         # 1. let run for a few rounds (t > W)
         self.commands[0,0] = self.spd
+        ra = random.uniform(0,1)
+        force = self.force * self.push_duration * self.dt
+        if ra < 0.82:
+            if -600. <= force[0,0] <= -300.:
+                print('GT: STOP')
+                self.robot_action = 0
+            elif -300. < force[0,0] <= -50.:
+                print('GT: SLOW DOWN')
+                self.robot_action = 1
+            elif 500. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
+                print('GT: FASTER')
+                self.robot_action = 3
+            else:
+                print('GT: NOISE')
+                self.robot_action = 2
         
         if self.count > 30:    
             # state machine
@@ -513,26 +533,28 @@ class LeggedRobot(BaseTask):
             self.predictions = p.tolist()
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
+            # print(self.predictions)
+
 
         # 3. decide on self.action based on consecutive majority voting
-            freq = Counter(self.predictions)
-            majority = max(freq, key=freq.get) # get the label with the max number of predictions
-            if majority != 2 and freq[majority] > (self.window_size//2):
-                # check if max label is consecutive (skipped)
-                id = []
-                for i, e in enumerate(self.predictions):
-                    if e == majority:
-                        id.append(i)
-                # # print('indices: ', id)
-                # # assign majority prediction as robot action
-                # if len(id) == self.window_size:
-                if len(id) > self.window_size//2:
-                    self.robot_action = majority
-                else:
-                    self.robot_action = 2
-                # self.robot_action = majority ## will not work if window size is large
-            else:
-                self.robot_action = 2
+            # freq = Counter(self.predictions)
+            # majority = max(freq, key=freq.get) # get the label with the max number of predictions
+            # if majority != 2 and freq[majority] > (self.window_size//2):
+            #     # check if max label is consecutive (skipped)
+            #     id = []
+            #     for i, e in enumerate(self.predictions):
+            #         if e == majority:
+            #             id.append(i)
+            #     # # print('indices: ', id)
+            #     # # assign majority prediction as robot action
+            #     # if len(id) == self.window_size:
+            #     if len(id) > self.window_size//2:
+            #         self.robot_action = majority
+            #     else:
+            #         self.robot_action = 2
+            #     # self.robot_action = majority ## will not work if window size is large
+            # else:
+            #     self.robot_action = 2
         else: 
             self.count += 1
 
