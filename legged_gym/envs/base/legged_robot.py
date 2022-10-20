@@ -88,7 +88,7 @@ class LeggedRobot(BaseTask):
 
         self.predictor = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
-        self.predictor = torch.load('./colab/classifier_05v3_100.pth')
+        self.predictor = torch.load('./checkpoints/test/classifier_0all_100.pth')
 
         self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.predictions = None
@@ -99,9 +99,9 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        self.window_size = 10
-        # self.window_size = 5
-        self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
+        # self.window_size = 20
+        self.window_size = 5
+        self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
         self.count = 0
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
@@ -410,7 +410,7 @@ class LeggedRobot(BaseTask):
 
         if self.push_duration > 0:
             self.zero = False
-            self._push_robots(self.force) erased for continuous walking
+            self._push_robots(self.force) # erased for continuous walking
             self.push_duration -= 1
         else:
             self.zero = True
@@ -418,7 +418,8 @@ class LeggedRobot(BaseTask):
 
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
         self.oldvel = self.base_lin_vel
-        imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+        # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+        imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
 
         # 1. let run for a few rounds (t > W)
         # 2. feed in current and previous W-1 imu data to predictor
@@ -427,12 +428,15 @@ class LeggedRobot(BaseTask):
         # push new imu data to stack
         # self.commands[0,0] = torch.tensor(0.5, device=self.device, dtype=torch.float)
         self.history = torch.cat((self.history[1:], imu[0].unsqueeze(0)), 0) # assuming imu[0] is size 34...
+        # print(self.history.size())
 
         # 1. let run for a few rounds (t > W)
         if self.count > 30:
+            # print(self.predictor(self.history).size())
             # 2. feed in current and previous W-1 imu data to predictor
             _, p = self.predictor(self.history).max(1)
             self.predictions = p.tolist()
+            print(p)
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
 
@@ -458,10 +462,10 @@ class LeggedRobot(BaseTask):
             self.count += 1
 
         # apply corresponding speed commands to action
-        if self.robot_action == 0:
-            self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
-        elif self.robot_action == 1 and self.commands[0,0] > 0.1:
-            self.commands[0,0] -= 0.1
+        # if self.robot_action == 0:
+        #     self.commands[0,0] = torch.tensor(0., device=self.device, dtype=torch.float)
+        # elif self.robot_action == 1 and self.commands[0,0] > 0.1:
+        #     self.commands[0,0] -= 0.1
         # elif self.robot_action == 3 and self.commands[0,0] < 2:
         # # elif self.robot_action == 3:
         #     self.commands[0,0] += 0.05

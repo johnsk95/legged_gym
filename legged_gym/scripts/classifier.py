@@ -19,7 +19,7 @@ class MLP(nn.Module):
     super().__init__()
     # self.soft = nn.Softmax(dim=1)
     self.layers = nn.Sequential(
-      nn.Linear(34, 64),
+      nn.Linear(31, 64),
       nn.ReLU(),
       nn.Linear(64, 128),
       nn.ReLU(),
@@ -29,7 +29,15 @@ class MLP(nn.Module):
       nn.ReLU(),
       nn.Linear(32, 4)
     )
-
+    # self.layers = nn.Sequential(
+    #   nn.Linear(31, 64),
+    #   nn.ReLU(),
+    #   nn.Linear(64, 64),
+    #   nn.ReLU(),
+    #   nn.Linear(64, 32),
+    #   nn.ReLU(),
+    #   nn.Linear(32, 4)
+    # )
 
   def forward(self, x):
     '''
