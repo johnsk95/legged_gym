@@ -86,7 +86,8 @@ class LeggedRobot(BaseTask):
 
         self.predictor = MLP()
         # self.predictor = torch.load('./mlp_side_big.pth')
-        self.predictor = torch.load('./mlp_front_500.pth')
+        # self.predictor = torch.load('./mlp_front_500.pth')
+        self.predictor = torch.load('./checkpoints/classifier_10bal_100.pth')
 
         self.force = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         self.predicted_force = None
