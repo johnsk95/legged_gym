@@ -357,24 +357,25 @@ class LeggedRobot(BaseTask):
         # print(self.push_interval)
         if self.count % self.push_interval == 0:
             self.zero = False
-            self.push_interval_s = random.uniform(0.3, 1.0)
+            self.push_interval_s = random.uniform(0.5, 1.5)
+            # self.push_interval_s = random.uniform(1.7, 2.1)
             self.push_interval = np.ceil(self.push_interval_s / self.dt)
             max_force = self.cfg.domain_rand.max_push_force
             # self.force = torch_rand_float(-500, 500, (self.num_envs,3), device=self.device)
             
             p = random.uniform(0,1)
             # generate different forces with probability
-            if p < 0.66:
+            if p < 0.8:
                 x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             else:
                 x_force = torch_rand_float(0, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
 
-            # x_force = torch_rand_float(-2000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # x_force = torch_rand_float(0, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
             self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
             
             self._push_robots(self.force)
-            self.push_duration = random.uniform(5, 20) # side (5,15), front (5,20), all (5, 20)
+            self.push_duration = random.uniform(10, 25) # side (5,15), front (5,20), all (5, 20)
 
             # tt = np.zeros((2,3), dtype=np.float32)
             start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.09], device=self.device)
@@ -388,14 +389,26 @@ class LeggedRobot(BaseTask):
 
             linacc = (self.base_lin_vel - self.oldvel) / self.dt
             self.oldvel = self.base_lin_vel
-            imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
-            self.predicted_force = self.predictor(imu[0]).item()
+            # print('dof size: ', self.dof_pos.size())
+            # print('obs size: ', joint_angles.size())
+            joint_angles = self.obs_buf[:,12:24].unsqueeze(0)
+            # print('angles size: ', joint_angles.size())
+            # print('obs size: ', self.obs_buf[0,12:24].size())
+            # print('obs size: ', joint_angles.size())
+            # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+            # print(self.base_quat.size())
+            # print(self.base_ang_vel.size())
+            # print(linacc.size())
+            
+            # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, joint_angles, self.dof_vel]) # 4, 3, 3, 12, 12
+            # print(self.predictor(imu[0]).item())
+            # self.predicted_force = self.predictor(imu[0]).item()
             # force_xyz = torch.tensor([0,self.predicted_force,0], device=self.device, dtype=torch.float)
-            force_xyz = torch.tensor([self.predicted_force,0,0], device=self.device, dtype=torch.float)
-            pred_start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.07], device=self.device)
-            pred_end = pred_start + force_xyz * scale
-            pred_vec = torch.vstack([pred_start, pred_end]).cpu().detach().numpy()
-            self.gym.add_lines(self.viewer, self.envs[0], 1, pred_vec, self.blue)
+            # force_xyz = torch.tensor([self.predicted_force,0,0], device=self.device, dtype=torch.float)
+            # pred_start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.07], device=self.device)
+            # pred_end = pred_start + force_xyz * scale
+            # pred_vec = torch.vstack([pred_start, pred_end]).cpu().detach().numpy()
+            # self.gym.add_lines(self.viewer, self.envs[0], 1, pred_vec, self.blue)
         else:
             self.gym.clear_lines(self.viewer)
             self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)

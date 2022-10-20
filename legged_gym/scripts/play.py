@@ -89,23 +89,26 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    f = open('sample_walking.csv', 'a', newline='')
+    f = open('gaits2/class1_15.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    # f2 = open('class2_0.5_upper.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('gaits2/class2_15.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
-    # f3 = open('class3_0.5_upper.csv', 'a', newline='')
-    # wr3 = csv.writer(f3)
+    f3 = open('gaits2/class3_15.csv', 'a', newline='')
+    wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
         #     f.write(f'{root_tensor[0,3:].tolist()}, {env.force[0].tolist()}\n')
         # print(env.force[0].tolist())
         force = env.force * env.push_duration * env.dt
-        root_linacc = (root_linvels - oldvel) / env.dt
-
-        imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # root_linacc = (root_linvels - oldvel) / env.dt
+        joint_angles = env.obs_buf[:,12:24]
+        joint_acc = env.obs_buf[:,24:36]
+        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
+        imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
 
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
@@ -114,6 +117,7 @@ def play(args):
 
             # for n in range(3):
             for n in range(env.num_envs):
+                # print(force[n,0])
                 if -600. <= force[n,0] <= -300.:
                     labels.append(0)
                     print('0:stop')
@@ -145,8 +149,8 @@ def play(args):
 
 
             wr.writerow(info[0].tolist())
-            # wr2.writerow(info[1].tolist())
-            # wr3.writerow(info[2].tolist())
+            wr2.writerow(info[1].tolist())
+            wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
         # if not env.zero:
