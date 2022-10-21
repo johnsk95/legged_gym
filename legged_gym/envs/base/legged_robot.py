@@ -84,10 +84,10 @@ class LeggedRobot(BaseTask):
         self.push_interval = np.ceil(self.push_interval_s / self.dt)
         self.push_duration = 0
 
-        self.predictor = MLP()
+        # self.predictor = MLP()
         # self.predictor = torch.load('./mlp_side_big.pth')
         # self.predictor = torch.load('./mlp_front_500.pth')
-        self.predictor = torch.load('./checkpoints/classifier_10bal_100.pth')
+        # self.predictor = torch.load('./checkpoints/classifier_10bal_100.pth')
 
         self.force = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         self.predicted_force = None
@@ -366,17 +366,17 @@ class LeggedRobot(BaseTask):
             
             p = random.uniform(0,1)
             # generate different forces with probability
-            if p < 0.8:
+            if p < 0.3:
                 x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             else:
-                x_force = torch_rand_float(0, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+                x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
 
             # x_force = torch_rand_float(0, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
             self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
             
             self._push_robots(self.force)
-            self.push_duration = random.uniform(10, 25) # side (5,15), front (5,20), all (5, 20)
+            self.push_duration = random.uniform(10, 20) # side (5,15), front (5,20), all (5, 20)
 
             # tt = np.zeros((2,3), dtype=np.float32)
             start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.09], device=self.device)

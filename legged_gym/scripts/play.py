@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    f = open('gaits2/class1_15.csv', 'a', newline='')
-    wr = csv.writer(f)
+    # f = open('gaits/class1_15.csv', 'a', newline='')
+    # wr = csv.writer(f)
 
-    f2 = open('gaits2/class2_15.csv', 'a', newline='')
-    wr2 = csv.writer(f2)
+    # f2 = open('gaits/class2_15.csv', 'a', newline='')
+    # wr2 = csv.writer(f2)
 
-    f3 = open('gaits2/class3_15.csv', 'a', newline='')
+    f3 = open('gaits/class3_15.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -109,6 +109,7 @@ def play(args):
         # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
         # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
         imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
+        print(force[0])
 
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
@@ -118,13 +119,13 @@ def play(args):
             # for n in range(3):
             for n in range(env.num_envs):
                 # print(force[n,0])
-                if -600. <= force[n,0] <= -300.:
+                if force[n,0] <= -300.:
                     labels.append(0)
                     print('0:stop')
                 elif -300. < force[n,0] <= -50.:
                     labels.append(1)
                     print('1:slow down')
-                elif 500. <= force[n,0] <= 900.:
+                elif force[n,0] >= 400.:
                     print('3:faster')
                     labels.append(3)
                 else:
@@ -148,8 +149,8 @@ def play(args):
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
 
 
-            wr.writerow(info[0].tolist())
-            wr2.writerow(info[1].tolist())
+            # wr.writerow(info[0].tolist())
+            # wr2.writerow(info[1].tolist())
             wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
