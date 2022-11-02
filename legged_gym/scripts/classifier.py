@@ -19,7 +19,7 @@ class MLP(nn.Module):
     super().__init__()
     # self.soft = nn.Softmax(dim=1)
     self.layers = nn.Sequential(
-      nn.Linear(31, 64),
+      nn.Linear(34, 64),
       nn.ReLU(),
       nn.Linear(64, 128),
       nn.ReLU(),

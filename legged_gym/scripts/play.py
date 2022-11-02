@@ -43,7 +43,7 @@ import torch
 from isaacgym import gymtorch
 import csv
 
-from legged_gym.scripts.predictor import MLP
+from legged_gym.scripts.classifier import MLP
 
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
@@ -112,15 +112,18 @@ def play(args):
 
         if not env.zero and not init:
             init = True
-            # print('impulse applied: ', force)
-            if -600. <= force[0,0] <= -300.:
+            if force[0,0] <= -300.:
                 print('GT: STOP')
+                # self.robot_action = 0
             elif -300. < force[0,0] <= -50.:
                 print('GT: SLOW DOWN')
-            elif 500. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
+                # self.robot_action = 1
+            elif force[0,0] >= 500.: # previous: lower bound 100, curr 300
                 print('GT: FASTER')
+                # self.robot_action = 3
             else:
                 print('GT: NOISE')
+                # self.robot_action = 2
 
         if env.zero:
             init = False
@@ -129,7 +132,7 @@ def play(args):
             print('Pred: ', ACTIONS[env.robot_action])
             init = False
             
-        imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
 
         # if i > 50 and not env.zero: # only record when pushed
         # if i > 30:

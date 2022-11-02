@@ -93,19 +93,19 @@ class LeggedRobot(BaseTask):
         self.predictor_15 = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
         # self.predictor = torch.load('./classifier_v2_150.pth')
-        self.predictor_0 = torch.load('./checkpoints/refined/classifier_0all_200.pth')
-        self.predictor_05 = torch.load('./checkpoints/refined/classifier_05_200.pth')
-        self.predictor_10 = torch.load('./checkpoints/refined/classifier_10_200.pth')
-        self.predictor_15 = torch.load('./checkpoints/refined/classifier_15_200.pth')
-        # self.predictor_0 = torch.load('./checkpoints/classifier_0allbal_100.pth')
-        # self.predictor_05 = torch.load('./checkpoints/classifier_05bal_100.pth')
-        # self.predictor_10 = torch.load('./checkpoints/classifier_10bal_100.pth')
-        # self.predictor_15 = torch.load('./checkpoints/classifier_15bal_100.pth')
+        # self.predictor_0 = torch.load('./checkpoints/refined/classifier_0all_200.pth')
+        # self.predictor_05 = torch.load('./checkpoints/refined/classifier_05_200.pth')
+        # self.predictor_10 = torch.load('./checkpoints/refined/classifier_10_200.pth')
+        # self.predictor_15 = torch.load('./checkpoints/refined/classifier_15_200.pth')
+        self.predictor_0 = torch.load('./checkpoints/classifier_0allbal_100.pth')
+        self.predictor_05 = torch.load('./checkpoints/classifier_05bal_100.pth')
+        self.predictor_10 = torch.load('./checkpoints/classifier_10bal_100.pth')
+        self.predictor_15 = torch.load('./checkpoints/classifier_15bal_100.pth')
         
         self.predictor = self.predictor_10
         self.spd = self.commands[0,0]
 
-        self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
+        self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
         self.predictions = None
         self.zero = True
         self.oldvel = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -116,8 +116,9 @@ class LeggedRobot(BaseTask):
         self.robot_action = 2
         self.window_size = 20
         # self.window_size = 5
-        self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
+        self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
         self.count = 0
+        self.consecutive = 0
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_R, "force_rear")
@@ -125,6 +126,8 @@ class LeggedRobot(BaseTask):
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_1, "force_stop")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_2, "force_slow")
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_3, "force_fast")
+
+        self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_N, "force_noise")
         # self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_4, "force_rear")
 
 
@@ -173,6 +176,11 @@ class LeggedRobot(BaseTask):
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
                     self.push_duration = 10
                     print('KEY: applied FAST')
+                elif evt.action == "force_noise" and evt.value > 0:
+                    # apply random rear force
+                    if self.spd != 1.5:
+                        self.spd += 0.5
+                    print('KEY: applied noise')
 
             # fetch results
             if self.device != 'cpu':
@@ -464,8 +472,8 @@ class LeggedRobot(BaseTask):
 
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
         self.oldvel = self.base_lin_vel
-        # imu = torch.hstack([self.base_quat, self.base_ang_vel, self.dof_pos, self.dof_vel])
-        imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel])
+        # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
 
         # 1. let run for a few rounds (t > W)
         # 2. feed in current and previous W-1 imu data to predictor
@@ -482,18 +490,16 @@ class LeggedRobot(BaseTask):
         self.commands[0,0] = self.spd
         ra = random.uniform(0,1)
         force = self.force * self.push_duration * self.dt
-        if ra < 0.82:
-            if -600. <= force[0,0] <= -300.:
-                print('GT: STOP')
+
+
+        if ra < 0.70:
+            if force[0,0] <= -300.:
                 self.robot_action = 0
             elif -300. < force[0,0] <= -50.:
-                print('GT: SLOW DOWN')
                 self.robot_action = 1
-            elif 500. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
-                print('GT: FASTER')
+            elif force[0,0] >= 500.: # previous: lower bound 100, curr 300
                 self.robot_action = 3
             else:
-                print('GT: NOISE')
                 self.robot_action = 2
         
         if self.count > 30:    
@@ -521,12 +527,23 @@ class LeggedRobot(BaseTask):
                         elif self.robot_action == 3:
                             self.predictor = self.predictor_10
                             self.spd = torch.tensor(1., device=self.device, dtype=torch.float)
+                    self.triggered = True
             else:
                 if self.robot_action == 3 and not self.triggered:
                     self.predictor = self.predictor_05
                     self.spd = torch.tensor(0.5, device=self.device, dtype=torch.float)
+                    # self.triggered = True
+            # if self.spd.item() != self.commands[0,0].item() and self.robot_action != 2:
+            #     print('triggered!')
+            #     self.triggered = True
             if self.spd.item() != self.commands[0,0].item() and self.robot_action != 2:
                 self.triggered = True
+
+            # if self.spd != 1.5 and random.uniform(0,1) < 0.3:
+            #     print('yes')
+            #     self.spd += 0.5
+
+            # print(self.consecutive)
 
             # 2. feed in current and previous W-1 imu data to predictor
             _, p = self.predictor(self.history).max(1)
@@ -539,7 +556,7 @@ class LeggedRobot(BaseTask):
         # 3. decide on self.action based on consecutive majority voting
             # freq = Counter(self.predictions)
             # majority = max(freq, key=freq.get) # get the label with the max number of predictions
-            # if majority != 2 and freq[majority] > (self.window_size//2):
+            # if majority != 2 and freq[majority] > (2*self.window_size//3):
             #     # check if max label is consecutive (skipped)
             #     id = []
             #     for i, e in enumerate(self.predictions):
@@ -552,13 +569,17 @@ class LeggedRobot(BaseTask):
             #         self.robot_action = majority
             #     else:
             #         self.robot_action = 2
-            #     # self.robot_action = majority ## will not work if window size is large
+                # self.robot_action = majority ## will not work if window size is large
             # else:
-            #     self.robot_action = 2
+                # self.robot_action = 2
         else: 
             self.count += 1
 
         # prevent multiple action applicatons to consecutive predictions
+        # if self.triggered and self.consecutive > 50:
+        #     # print('possible!')
+        #     self.consecutive = 0
+        #     self.triggered = False
         if self.robot_action == 2:
             self.triggered = False
 
