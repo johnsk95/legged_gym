@@ -87,15 +87,15 @@ def play(args):
     root_orientations = root_tensor[:, 3:7]
     root_linvels = root_tensor[:, 7:10]
     root_angvels = root_tensor[:, 10:13]
-    oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
+    oldvel = env.oldvel
 
-    f = open('gait_sim/class1_10.csv', 'a', newline='')
+    f = open('gait_old/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('gait_sim/class2_10.csv', 'a', newline='')
+    f2 = open('gait_old/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('gait_sim/class3_10.csv', 'a', newline='')
+    f3 = open('gait_old/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -103,12 +103,12 @@ def play(args):
         #     f.write(f'{root_tensor[0,3:].tolist()}, {env.force[0].tolist()}\n')
         # print(env.force[0].tolist())
         force = env.force * env.push_duration * env.dt
-        # root_linacc = (root_linvels - oldvel) / env.dt
+        root_linacc = (root_linvels - oldvel) / env.dt
         joint_angles = env.obs_buf[:,12:24]
         joint_acc = env.obs_buf[:,24:36]
-        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
         # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
-        imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
+        # imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
 
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
@@ -124,7 +124,7 @@ def play(args):
                 elif -300. < force[n,0] <= -50.:
                     labels.append(1)
                     print('1:slow down')
-                elif force[n,0] >= 400.:
+                elif force[n,0] >= 300.:
                     print('3:faster')
                     labels.append(3)
                 else:
