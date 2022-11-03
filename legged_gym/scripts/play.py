@@ -44,8 +44,8 @@ from isaacgym import gymtorch
 import csv
 
 # from legged_gym.scripts.predictor import MLP
-# from legged_gym.scripts.classifier_old import MLP
-from legged_gym.scripts.classifier import MLP
+from legged_gym.scripts.classifier_old import MLP
+# from legged_gym.scripts.classifier import MLP
 
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
@@ -155,7 +155,7 @@ def play(args):
                 print('GT: STOP')
             elif -300. < force[0,0] <= -50.:
                 print('GT: SLOW DOWN')
-            elif force[0,0] >= 400.: # previous: lower bound 100, curr 300
+            elif force[0,0] >= 300.: # previous: lower bound 100, curr 300
                 print('GT: FASTER')
             else:
                 print('GT: NOISE')
