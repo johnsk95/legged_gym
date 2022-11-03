@@ -29,8 +29,8 @@
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
 from legged_gym import LEGGED_GYM_ROOT_DIR, envs
-# from legged_gym.scripts.classifier import MLP
-from legged_gym.scripts.classifier_old import MLP
+from legged_gym.scripts.classifier import MLP
+# from legged_gym.scripts.classifier_old import MLP
 from time import time
 from warnings import WarningMessage
 import numpy as np
@@ -90,9 +90,10 @@ class LeggedRobot(BaseTask):
         self.predictor = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
         # self.predictor = torch.load('./checkpoints/refined/classifier_15_200.pth')
-        self.predictor = torch.load('./checkpoints/classifier_05bal_100.pth')
+        self.predictor = torch.load('./checkpoint_noacc2/classifier_10_100.pth')
 
-        self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
+        # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
+        self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
         self.predictions = None
         self.zero = True
         self.oldvel = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -101,10 +102,10 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        self.window_size = 10
-        # self.window_size = 5
-        # self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
-        self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
+        # self.window_size = 10
+        self.window_size = 5
+        self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
+        # self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
         self.count = 0
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
@@ -124,17 +125,16 @@ class LeggedRobot(BaseTask):
                     self.enable_viewer_sync = not self.enable_viewer_sync
                 elif evt.action == "force_front" and evt.value > 0:
                     # apply random front force
-                    x_force = torch_rand_float(0, 5000, (self.num_envs,1), device=self.device)
+                    x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
                     self.push_duration = random.uniform(5, 20)
                     # print('applied front: ', self.force)
                     print('KEY: applied front')
                 elif evt.action == "force_rear" and evt.value > 0:
                     # apply random rear force
-                    x_force = torch_rand_float(-3000, 0, (self.num_envs,1), device=self.device)
+                    x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device)
                     self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
-                    self.push_duration = random.uniform(5, 20)
-                    print("duration: ", self.push_duration)
+                    self.push_duration = random.uniform(5, 15)
                     # print('applied rear: ', self.force)
                     print('KEY: applied rear')
 
@@ -421,8 +421,8 @@ class LeggedRobot(BaseTask):
 
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
         self.oldvel = self.base_lin_vel
-        imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel]) # old setting (34)
-        # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel]) # old setting (34)
+        imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
 
         # 1. let run for a few rounds (t > W)
         # 2. feed in current and previous W-1 imu data to predictor
@@ -437,6 +437,7 @@ class LeggedRobot(BaseTask):
             # 2. feed in current and previous W-1 imu data to predictor
             _, p = self.predictor(self.history).max(1)
             self.predictions = p.tolist()
+
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
 

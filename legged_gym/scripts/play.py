@@ -44,7 +44,8 @@ from isaacgym import gymtorch
 import csv
 
 # from legged_gym.scripts.predictor import MLP
-from legged_gym.scripts.classifier_old import MLP
+# from legged_gym.scripts.classifier_old import MLP
+from legged_gym.scripts.classifier import MLP
 
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
@@ -90,14 +91,15 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    # f = open('write1_side_i2.csv', 'a', newline='')
-    # wr = csv.writer(f)
+    f = open('gait_sim2/class1_10.csv', 'a', newline='')
+    wr = csv.writer(f)
 
-    # f2 = open('write2_side_i2.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('gait_sim2/class2_10.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
-    # f3 = open('write3_side_i2.csv', 'a', newline='')
-    # wr3 = csv.writer(f3)
+    f3 = open('gait_sim2/class3_10.csv', 'a', newline='')
+    wr3 = csv.writer(f3)
+
     init = False
     ACTIONS = ['STOP', 'SLOW DOWN', 'NOISE', 'FASTER']
 
@@ -105,62 +107,70 @@ def play(args):
         # with open(f'./data/imu.txt', 'a') as f:
         #     f.write(f'{root_tensor[0,3:].tolist()}, {env.force[0].tolist()}\n')
         # print(env.force[0].tolist())
+
         force = env.force * env.push_duration * env.dt
-        root_linacc = (root_linvels - oldvel) / env.dt
-
-        if not env.zero and not init:
-            init = True
-            print('impulse applied: ', force)
-            if -600. <= force[0,0] <= -300.:
-                print('GT: STOP')
-            elif -300. < force[0,0] <= -50.:
-                print('GT: SLOW DOWN')
-            elif 300. <= force[0,0] <= 900.: # previous: lower bound 100, curr 300
-                print('GT: FASTER')
-            else:
-                print('GT: NOISE')
-
-        if env.zero:
-            init = False
-
-        if env.robot_action != 2:
-            print(ACTIONS[env.robot_action])
-
-        # print(ACTIONS[env.robot_action])
-            
-        imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # root_linacc = (root_linvels - oldvel) / env.dt
+        joint_angles = env.obs_buf[:,12:24]
+        joint_acc = env.obs_buf[:,24:36]
+        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
+        imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
 
         # if i > 50 and not env.zero: # only record when pushed
-        # if i > 30:
+        if i > 50:
             # info = torch.hstack([imu, force])
+            labels = []
+            # for n in range(3):
+            for n in range(env.num_envs):
+                # print(force[n,0])
+                if force[n,0] <= -300.:
+                    labels.append(0)
+                    print('0:stop')
+                elif -300. < force[n,0] <= -50.:
+                    labels.append(1)
+                    print('1:slow down')
+                elif force[n,0] >= 400.:
+                    print('3:faster')
+                    labels.append(3)
+                else:
+                    print('2:noise')
+                    labels.append(2)
+                    
+            cv = torch.tensor(labels, device=env.device, dtype=torch.float)
+            info = torch.hstack([imu, cv.unsqueeze(1)])
 
-            # dd = torch.hstack([imu, env.force])
-            # wr.writerows(imu.tolist() + env.force.tolist())
-            # wr.writerows(dd.tolist())
+            wr.writerow(info[0].tolist())
+            wr2.writerow(info[1].tolist())
+            wr3.writerow(info[2].tolist())
 
-            # wr.writerow(root_tensor[0,3:].tolist() + env.force[0].tolist())
-            # wr2.writerow(root_tensor[1,3:].tolist() + env.force[1].tolist())
-            # wr3.writerow(root_tensor[2,3:].tolist() + env.force[2].tolist())
 
-            # wr.writerow(imu.tolist() + env.force[0].tolist())
-            # wr2.writerow(imu.tolist() + env.force[1].tolist())
-            # wr3.writerow(imu.tolist() + env.force[2].tolist())
+# temporary comment for data collection
+        # force = env.force * env.push_duration * env.dt
+        # root_linacc = (root_linvels - oldvel) / env.dt
+
+        # if not env.zero and not init:
+        #     init = True
+        #     print('impulse applied: ', force)
+        #     if force[0,0] <= -300.:
+        #         print('GT: STOP')
+        #     elif -300. < force[0,0] <= -50.:
+        #         print('GT: SLOW DOWN')
+        #     elif force[0,0] >= 400.: # previous: lower bound 100, curr 300
+        #         print('GT: FASTER')
+        #     else:
+        #         print('GT: NOISE')
+
+        # if env.zero:
+        #     init = False
+
+        # if env.robot_action != 2:
+        #     print('Pred: ', ACTIONS[env.robot_action])
+
+        # # print(ACTIONS[env.robot_action])
             
-            # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
-            # wr.writerow(info[0].tolist())
-            # wr2.writerow(info[1].tolist())
-            # wr3.writerow(info[2].tolist())
+        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+# temporary comment
 
-        # print(env.dof_vel)
-        # if not env.zero:
-        #     # print(f'Predicted: {env.predicted_force}, Target: {env.force[0,0]}')
-        #     print('Impulse: ', force)
-
-        # print(f'Predicted: {env.pred}, Target: {force}')
-        # print(env.dt)
-        # print(env.sim_params.dt)
-
-        # print(root_angacc[0])
         actions = policy(obs.detach())
         obs, _, rews, dones, infos = env.step(actions.detach())
         if RECORD_FRAMES:
@@ -202,9 +212,10 @@ def play(args):
             return
 
         env.gym.refresh_actor_root_state_tensor(env.sim)
-    # f.close()
-    # f2.close()
-    # f3.close()
+
+    f.close()
+    f2.close()
+    f3.close()
 
 if __name__ == '__main__':
     EXPORT_POLICY = True
