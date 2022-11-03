@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    f = open('gait_sim/class1_0.csv', 'a', newline='')
+    f = open('gait_sim/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('gait_sim/class2_0.csv', 'a', newline='')
+    f2 = open('gait_sim/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('gait_sim/class3_0.csv', 'a', newline='')
+    f3 = open('gait_sim/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
