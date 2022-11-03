@@ -90,7 +90,7 @@ class LeggedRobot(BaseTask):
         self.predictor = MLP()
         # self.predictor = torch.load('./classifier_v2.pth')
         # self.predictor = torch.load('./checkpoints/refined/classifier_15_200.pth')
-        self.predictor = torch.load('./checkpoint_noacc2/classifier_10_100.pth')
+        self.predictor = torch.load('./checkpoint_noacc2/classifier_10v2_100.pth')
 
         # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -437,6 +437,7 @@ class LeggedRobot(BaseTask):
             # 2. feed in current and previous W-1 imu data to predictor
             _, p = self.predictor(self.history).max(1)
             self.predictions = p.tolist()
+            print(self.predictions)
 
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
