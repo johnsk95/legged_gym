@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    # f = open('gaits/class1_15.csv', 'a', newline='')
-    # wr = csv.writer(f)
+    f = open('gait_sim/class1_0.csv', 'a', newline='')
+    wr = csv.writer(f)
 
-    # f2 = open('gaits/class2_15.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('gait_sim/class2_0.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
-    f3 = open('gaits/class3_15.csv', 'a', newline='')
+    f3 = open('gait_sim/class3_0.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -109,7 +109,6 @@ def play(args):
         # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
         # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
         imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
-        print(force[0])
 
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
@@ -149,8 +148,8 @@ def play(args):
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
 
 
-            # wr.writerow(info[0].tolist())
-            # wr2.writerow(info[1].tolist())
+            wr.writerow(info[0].tolist())
+            wr2.writerow(info[1].tolist())
             wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)

@@ -354,11 +354,11 @@ class LeggedRobot(BaseTask):
         if self.cfg.terrain.measure_heights:
             self.measured_heights = self._get_heights()
 
-        scale = 1e-2
+        scale = 1e-1
         # print(self.push_interval)
         if self.count % self.push_interval == 0:
             self.zero = False
-            self.push_interval_s = random.uniform(0.5, 1.5)
+            self.push_interval_s = random.uniform(0.3, 1.5)
             # self.push_interval_s = random.uniform(1.7, 2.1)
             self.push_interval = np.ceil(self.push_interval_s / self.dt)
             max_force = self.cfg.domain_rand.max_push_force
@@ -369,7 +369,7 @@ class LeggedRobot(BaseTask):
             if p < 0.3:
                 x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             else:
-                x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+                x_force = torch_rand_float(1000, 2500, (self.num_envs,1), device=self.device) # only x force # side, front 2000
 
             # x_force = torch_rand_float(0, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
