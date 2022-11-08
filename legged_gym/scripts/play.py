@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = env.oldvel
 
-    f = open('gait_linvel_dof/class1_10.csv', 'a', newline='')
+    f = open('gait_500/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('gait_linvel_dof/class2_10.csv', 'a', newline='')
+    f2 = open('gait_500/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('gait_linvel_dof/class3_10.csv', 'a', newline='')
+    f3 = open('gait_500/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -126,7 +126,7 @@ def play(args):
                 elif -300. < force[n,0] <= -50.:
                     labels.append(1)
                     print('1:slow down')
-                elif force[n,0] >= 300.:
+                elif force[n,0] >= 400.:
                     print('3:faster')
                     labels.append(3)
                 else:
