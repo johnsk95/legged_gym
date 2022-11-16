@@ -366,12 +366,18 @@ class LeggedRobot(BaseTask):
             
             p = random.uniform(0,1)
             # generate different forces with probability
-            if p < 0.7:
-                x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
-            else:
-                x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # if p < 0.7:
+            #     x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # else:
+            #     x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
 
-            # x_force = torch_rand_float(0, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            if p < 0.6:
+                x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            else:
+                x_force = torch_rand_float(-2000, 1000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+
+
+            # x_force = torch_rand_float(-2000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
             self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
             
