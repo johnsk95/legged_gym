@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = env.oldvel
 
-    f = open('gait_vel/class1_10.csv', 'a', newline='')
+    f = open('old_obs/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('gait_vel/class2_10.csv', 'a', newline='')
+    f2 = open('old_obs/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('gait_vel/class3_10.csv', 'a', newline='')
+    f3 = open('old_obs/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -104,14 +104,19 @@ def play(args):
         # print(env.force[0].tolist())
         force = env.force * env.push_duration * env.dt
         root_linacc = (root_linvels - oldvel) / env.dt
+        acc = env.obs_buf[:, 6:9]
         joint_angles = env.obs_buf[:,12:24]
-        joint_acc = env.obs_buf[:,24:36]
+        joint_vel = env.obs_buf[:,24:36]
         # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
-        # imu = torch.hstack([root_orientations, root_linvels, root_linacc, joint_angles, joint_acc]) # next: change to dof_pos, dof_vel
+        imu = torch.hstack([root_orientations, root_angvels, acc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_linvels, root_linacc, joint_angles, joint_vel]) # next: change to dof_pos, dof_vel
         # imu = torch.hstack([root_orientations, root_linvels, root_linacc, env.dof_pos, env.dof_vel]) # next: change to dof_pos, dof_vel
         # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
-        imu = torch.hstack([root_linvels, root_angvels])
+        # imu = torch.hstack([root_linvels, root_angvels])
 
+        # imu = torch.hstack([root_orientations, root_linvels, root_angvels, acc, env.dof_pos, env.dof_vel]) # all (37)
+        # imu = torch.hstack([root_orientations, root_linvels, root_angvels, root_linacc, env.dof_pos, env.dof_vel]) # all_linacc
+        # imu = torch.hstack([root_orientations, root_linvels]) # orivel (7)
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
             # info = torch.hstack([imu, force])
