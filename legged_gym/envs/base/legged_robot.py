@@ -31,7 +31,8 @@
 from legged_gym import LEGGED_GYM_ROOT_DIR, envs
 # from legged_gym.scripts.classifier import MLP
 # from legged_gym.scripts.classifier_old import MLP
-from legged_gym.scripts.classifier_trim import MLP
+from legged_gym.scripts.classifier_custom import MLP
+# from legged_gym.scripts.classifier_trim import MLP
 from time import time
 from warnings import WarningMessage
 import numpy as np
@@ -93,7 +94,9 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./checkpoints/refined/classifier_15_200.pth')
         # self.predictor = torch.load('./checkpoint_noacc2/classifier_10v2_100.pth')
         # self.predictor = torch.load('./checkpoint_old/classifier_10_100.pth')
-        self.predictor = torch.load('./checkpoint_vel/classifier_10_200.pth')
+        # self.predictor = torch.load('./checkpoint_all_linacc/classifier_10_100.pth')
+
+        self.predictor = torch.load('./checkpoint_orivel/classifier_10_100.pth')
 
         # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -109,7 +112,8 @@ class LeggedRobot(BaseTask):
         self.window_size = 5
         # self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
         # self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
-        self.history = torch.zeros((self.window_size, 6), device=self.device, dtype=torch.float)
+        self.history = torch.zeros((self.window_size, 7), device=self.device, dtype=torch.float)
+        # self.history = torch.zeros((self.window_size, 6), device=self.device, dtype=torch.float)
         self.count = 0
 
         self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_F, "force_front")
@@ -426,8 +430,13 @@ class LeggedRobot(BaseTask):
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
         self.oldvel = self.base_lin_vel
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel]) # old setting (34)
-        imu = torch.hstack([self.base_lin_vel, self.base_ang_vel]) # old setting (34)
-        # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        # imu = torch.hstack([self.base_lin_vel, self.base_ang_vel]) # old setting (34)
+        # imu = torch.hstack([self.base_quat, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        imu = torch.hstack([self.base_quat, self.base_lin_vel])
+
 
         # 1. let run for a few rounds (t > W)
         # 2. feed in current and previous W-1 imu data to predictor
