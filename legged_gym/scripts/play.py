@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = env.oldvel
 
-    f = open('stop_binary/class1_10.csv', 'a', newline='')
+    f = open('gait_6/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('stop_binary/class2_10.csv', 'a', newline='')
+    f2 = open('gait_6/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('stop_binary/class3_10.csv', 'a', newline='')
+    f3 = open('gait_6/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -107,14 +107,16 @@ def play(args):
         acc = env.obs_buf[:, 6:9]
         joint_angles = env.obs_buf[:,12:24]
         joint_vel = env.obs_buf[:,24:36]
-        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_angvels, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_linvels, root_linacc, joint_angles, joint_vel])
+        imu = torch.hstack([root_angvels, root_linacc, joint_angles, joint_vel])
         # imu = torch.hstack([root_orientations, root_angvels, acc, env.dof_pos, env.dof_vel])
         # imu = torch.hstack([root_orientations, root_linvels, root_linacc, joint_angles, joint_vel]) # next: change to dof_pos, dof_vel
         # imu = torch.hstack([root_orientations, root_linvels, root_linacc, env.dof_pos, env.dof_vel]) # next: change to dof_pos, dof_vel
-        # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_linvels, root_linacc])
         # imu = torch.hstack([root_linvels, root_angvels])
 
-        imu = torch.hstack([root_orientations, root_linvels, root_angvels, acc, env.dof_pos, env.dof_vel]) # all (37)
+        # imu = torch.hstack([root_orientations, root_linvels, root_angvels, acc, env.dof_pos, env.dof_vel]) # all (37)
         # imu = torch.hstack([root_orientations, root_linvels, root_angvels, root_linacc, env.dof_pos, env.dof_vel]) # all_linacc
         # imu = torch.hstack([root_orientations, root_linvels]) # orivel (7)
         # if i > 50 and not env.zero: # only record when pushed
@@ -123,29 +125,29 @@ def play(args):
             labels = []
 
             # for n in range(3):
-            # for n in range(env.num_envs):
-            #     # print(force[n,0])
-            #     if force[n,0] <= -300.:
-            #         labels.append(0)
-            #         print('0:stop')
-            #     elif -300. < force[n,0] <= -50.:
-            #         labels.append(1)
-            #         print('1:slow down')
-            #     elif force[n,0] >= 400.:
-            #         print('3:faster')
-            #         labels.append(3)
-            #     else:
-            #         print('2:noise')
-            #         labels.append(2)
-
-
             for n in range(env.num_envs):
-                if force[n,0] >= 300.:
-                    print('faster')
+                # print(force[n,0])
+                if force[n,0] <= -300.:
                     labels.append(0)
-                else:
-                    print('noise')
+                    print('0:stop')
+                elif -300. < force[n,0] <= -50.:
                     labels.append(1)
+                    print('1:slow down')
+                elif force[n,0] >= 400.:
+                    print('3:faster')
+                    labels.append(3)
+                else:
+                    print('2:noise')
+                    labels.append(2)
+
+
+            # for n in range(env.num_envs):
+            #     if force[n,0] >= 300.:
+            #         print('faster')
+            #         labels.append(0)
+            #     else:
+            #         print('noise')
+            #         labels.append(1)
                     
             cv = torch.tensor(labels, device=env.device, dtype=torch.float)
             info = torch.hstack([imu, cv.unsqueeze(1)])
