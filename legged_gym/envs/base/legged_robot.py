@@ -96,7 +96,7 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./checkpoint_old/classifier_10_100.pth')
         # self.predictor = torch.load('./checkpoint_all_linacc/classifier_10_100.pth')
 
-        self.predictor = torch.load('./checkpoint_orivel/classifier_10_100.pth')
+        self.predictor = torch.load('./checkpoint_5/classifier_10_100.pth')
 
         # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -112,7 +112,7 @@ class LeggedRobot(BaseTask):
         self.window_size = 5
         # self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
         # self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
-        self.history = torch.zeros((self.window_size, 7), device=self.device, dtype=torch.float)
+        self.history = torch.zeros((self.window_size, 30), device=self.device, dtype=torch.float)
         # self.history = torch.zeros((self.window_size, 6), device=self.device, dtype=torch.float)
         self.count = 0
 
@@ -432,10 +432,10 @@ class LeggedRobot(BaseTask):
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel]) # old setting (34)
         # imu = torch.hstack([self.base_lin_vel, self.base_ang_vel]) # old setting (34)
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
-        # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        imu = torch.hstack([self.base_lin_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
-        imu = torch.hstack([self.base_quat, self.base_lin_vel])
+        # imu = torch.hstack([self.base_quat, self.base_lin_vel])
 
 
         # 1. let run for a few rounds (t > W)
