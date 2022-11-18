@@ -96,7 +96,7 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./checkpoint_old/classifier_10_100.pth')
         # self.predictor = torch.load('./checkpoint_all_linacc/classifier_10_100.pth')
 
-        self.predictor = torch.load('./checkpoint_5/classifier_10_100.pth')
+        self.predictor = torch.load('./checkpoint_10/classifier_10_100.pth')
 
         # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -428,11 +428,12 @@ class LeggedRobot(BaseTask):
             self.push_duration = 0
 
         linacc = (self.base_lin_vel - self.oldvel) / self.dt
+        acc = self.obs_buf[:,6:9]
         self.oldvel = self.base_lin_vel
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel]) # old setting (34)
         # imu = torch.hstack([self.base_lin_vel, self.base_ang_vel]) # old setting (34)
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
-        imu = torch.hstack([self.base_lin_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        imu = torch.hstack([self.base_lin_vel, acc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel])

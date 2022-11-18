@@ -103,6 +103,7 @@ def play(args):
 
     init = False
     ACTIONS = ['STOP', 'SLOW DOWN', 'NOISE', 'FASTER']
+    ACTIONS = ['FASTER', 'NOISE']
 
     for i in range(10*int(env.max_episode_length)):
         # with open(f'./data/imu.txt', 'a') as f:
@@ -152,14 +153,20 @@ def play(args):
         if not env.zero and not init:
             init = True
             print('impulse applied: ', force)
-            if force[0,0] <= -300.:
-                print('GT: STOP')
-            elif -300. < force[0,0] <= -50.:
-                print('GT: SLOW DOWN')
-            elif force[0,0] >= 400.: # previous: lower bound 100, curr 300
-                print('GT: FASTER')
+            # if force[0,0] <= -300.:
+            #     print('GT: STOP')
+            # elif -300. < force[0,0] <= -50.:
+            #     print('GT: SLOW DOWN')
+            # elif force[0,0] >= 400.: # previous: lower bound 100, curr 300
+            #     print('GT: FASTER')
+            # else:
+            #     print('GT: NOISE')
+
+
+            if force[0,0] >= 400.:
+                print('GT: faster')
             else:
-                print('GT: NOISE')
+                print('GT: noise')
 
         if env.zero:
             init = False
