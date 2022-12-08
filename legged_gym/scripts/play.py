@@ -89,13 +89,13 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = env.oldvel
 
-    f = open('force_3/class1_10.csv', 'a', newline='')
+    f = open('force_4/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('force_3/class2_10.csv', 'a', newline='')
+    f2 = open('force_4/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('force_3/class3_10.csv', 'a', newline='')
+    f3 = open('force_4/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -108,8 +108,8 @@ def play(args):
         joint_angles = env.obs_buf[:,12:24]
         joint_vel = env.obs_buf[:,24:36]
         # imu = torch.hstack([root_orientations, root_angvels, env.dof_pos, env.dof_vel])
-        # imu = torch.hstack([root_linvels, root_linacc, joint_angles, joint_vel])
-        imu = torch.hstack([root_angvels, root_linacc, joint_angles, joint_vel])
+        imu = torch.hstack([root_linvels, root_linacc, joint_angles, joint_vel])
+        # imu = torch.hstack([root_angvels, root_linacc, joint_angles, joint_vel])
         # imu = torch.hstack([root_orientations, root_angvels, acc, env.dof_pos, env.dof_vel])
         # imu = torch.hstack([root_orientations, root_linvels, root_linacc, joint_angles, joint_vel]) # next: change to dof_pos, dof_vel
         # imu = torch.hstack([root_orientations, root_linvels, root_linacc, env.dof_pos, env.dof_vel]) # next: change to dof_pos, dof_vel
@@ -152,8 +152,8 @@ def play(args):
             cv = torch.tensor(labels, device=env.device, dtype=torch.float)
             # info = torch.hstack([imu, cv.unsqueeze(1)])
 
-            # info = torch.hstack([imu, force[:,0].unsqueeze(1)])
-            info = torch.hstack([imu, env.force[:,0].unsqueeze(1)])
+            info = torch.hstack([imu, force[:,0].unsqueeze(1)])
+            # info = torch.hstack([imu, env.force[:,0].unsqueeze(1)])
 
             # dd = torch.hstack([imu, env.force])
             # wr.writerows(imu.tolist() + env.force.tolist())
