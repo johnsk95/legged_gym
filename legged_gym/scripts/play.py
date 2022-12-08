@@ -151,7 +151,12 @@ def play(args):
         force = env.force * env.push_duration * env.dt
         root_linacc = (root_linvels - oldvel) / env.dt
         
-        print(f'GT: {force}, Prediction: {env.predictions}')
+        if env.predictions:
+            p = env.predictions[-1]
+        else:
+            p = env.predictions
+        print(f'GT: {force}, Prediction: {p}')
+        # print(f'GT: {env.force}, Prediction: {p}')
 
         # if not env.zero and not init:
         #     init = True

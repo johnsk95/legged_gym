@@ -100,7 +100,7 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./checkpoint_05_linacc/classifier_05_150.pth')
         # self.predictor = torch.load('./checkpoint_05_acc/classifier_05_200.pth')
 
-        self.predictor = torch.load('./checkpoint_10_force/classifier_10_100.pth')
+        self.predictor = torch.load('./checkpoint_0_impulse/classifier_0_100.pth')
 
         # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
