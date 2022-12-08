@@ -358,9 +358,9 @@ class LeggedRobot(BaseTask):
         # print(self.push_interval)
         if self.count % self.push_interval == 0:
             self.zero = False
-            self.push_interval_s = random.uniform(0.3, 1.0)
+            # self.push_interval_s = random.uniform(0.3, 1.0)
             # self.push_interval_s = random.uniform(0.3, 0.8) # for force predictor
-            # self.push_interval_s = random.uniform(1.7, 2.1)
+            self.push_interval_s = random.uniform(0.8, 1.8)
             self.push_interval = np.ceil(self.push_interval_s / self.dt)
             max_force = self.cfg.domain_rand.max_push_force
             # self.force = torch_rand_float(-500, 500, (self.num_envs,3), device=self.device)
