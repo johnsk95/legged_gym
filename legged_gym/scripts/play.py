@@ -45,7 +45,8 @@ import csv
 
 # from legged_gym.scripts.predictor import MLP
 # from legged_gym.scripts.classifier_old import MLP
-from legged_gym.scripts.classifier_trim import MLP
+# from legged_gym.scripts.classifier_trim import MLP
+from legged_gym.scripts.force_predictor import MLP
 # from legged_gym.scripts.classifier import MLP
 
 def play(args):
@@ -149,18 +150,20 @@ def play(args):
 # temporary comment for data collection
         force = env.force * env.push_duration * env.dt
         root_linacc = (root_linvels - oldvel) / env.dt
+        
+        print(f'GT: {force}, Prediction: {env.predictions}')
 
-        if not env.zero and not init:
-            init = True
-            print('impulse applied, GT: ', force)
-            if force[0,0] <= -300.:
-                print('GT: STOP')
-            elif -300. < force[0,0] <= -50.:
-                print('GT: SLOW DOWN')
-            elif force[0,0] >= 400.: # previous: lower bound 100, curr 300
-                print('GT: FASTER')
-            else:
-                print('GT: NOISE')
+        # if not env.zero and not init:
+        #     init = True
+        #     print('impulse applied, GT: ', force)
+        #     if force[0,0] <= -300.:
+        #         print('GT: STOP')
+        #     elif -300. < force[0,0] <= -50.:
+        #         print('GT: SLOW DOWN')
+        #     elif force[0,0] >= 400.: # previous: lower bound 100, curr 300
+        #         print('GT: FASTER')
+        #     else:
+        #         print('GT: NOISE')
 
 
             # if force[0,0] >= 400.:
@@ -171,8 +174,8 @@ def play(args):
         if env.zero:
             init = False
 
-        if env.robot_action != 2:
-            print('Pred: ', ACTIONS[env.robot_action])
+        # if env.robot_action != 2:
+        #     print('Pred: ', ACTIONS[env.robot_action])
             # print('Pred: ', env.predictions)
 
         # print(ACTIONS[env.robot_action])
