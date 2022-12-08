@@ -32,6 +32,7 @@ from legged_gym import LEGGED_GYM_ROOT_DIR, envs
 # from legged_gym.scripts.classifier import MLP
 # from legged_gym.scripts.classifier_old import MLP
 from legged_gym.scripts.classifier_custom import MLP
+# from legged_gym.scripts.force_predictor import MLP
 # from legged_gym.scripts.classifier_trim import MLP
 from time import time
 from warnings import WarningMessage
@@ -96,7 +97,8 @@ class LeggedRobot(BaseTask):
         # self.predictor = torch.load('./checkpoint_old/classifier_10_100.pth')
         # self.predictor = torch.load('./checkpoint_all_linacc/classifier_10_100.pth')
 
-        self.predictor = torch.load('./checkpoint_10/classifier_10_100.pth')
+        self.predictor = torch.load('./checkpoint_05_linacc/classifier_05_150.pth')
+        # self.predictor = torch.load('./checkpoint_05_acc/classifier_05_200.pth')
 
         # self.force = torch.zeros((self.num_envs, 1, 3), device=self.device, dtype=torch.float)
         self.force = torch.zeros((self.num_envs, 3), device=self.device, dtype=torch.float)
@@ -108,7 +110,7 @@ class LeggedRobot(BaseTask):
         self.blue = np.array([[0., 0., 255.]], dtype=np.float32)
 
         self.robot_action = 2
-        # self.window_size = 10
+        # self.window_size = 20
         self.window_size = 5
         # self.history = torch.zeros((self.window_size, 31), device=self.device, dtype=torch.float)
         # self.history = torch.zeros((self.window_size, 34), device=self.device, dtype=torch.float)
@@ -433,7 +435,7 @@ class LeggedRobot(BaseTask):
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, linacc, self.dof_pos, self.dof_vel]) # old setting (34)
         # imu = torch.hstack([self.base_lin_vel, self.base_ang_vel]) # old setting (34)
         # imu = torch.hstack([self.base_quat, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
-        imu = torch.hstack([self.base_lin_vel, acc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
+        imu = torch.hstack([self.base_lin_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, linacc, self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel, self.base_ang_vel, self.obs_buf[:,6:9], self.obs_buf[:,12:24], self.obs_buf[:,24:36]])
         # imu = torch.hstack([self.base_quat, self.base_lin_vel])
@@ -450,9 +452,14 @@ class LeggedRobot(BaseTask):
         # 1. let run for a few rounds (t > W)
         if self.count > 30:
             # 2. feed in current and previous W-1 imu data to predictor
+            # force classifier
             _, p = self.predictor(self.history).max(1)
             self.predictions = p.tolist()
             print(self.predictions)
+
+            # force predictor
+            # self.predictions = self.predictor(self.history).tolist()
+            # print(self.predictions)
 
         # _, p = self.predictor(imu[0]).max(0)
         # self.prediction = p.item()
