@@ -89,11 +89,11 @@ def play(args):
     root_angvels = root_tensor[:, 10:13]
     oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
 
-    # f = open('gaits/class1_15.csv', 'a', newline='')
-    # wr = csv.writer(f)
+    f = open('gaits/class1_15.csv', 'a', newline='')
+    wr = csv.writer(f)
 
-    # f2 = open('gaits/class2_15.csv', 'a', newline='')
-    # wr2 = csv.writer(f2)
+    f2 = open('gaits/class2_15.csv', 'a', newline='')
+    wr2 = csv.writer(f2)
 
     f3 = open('gaits/class3_15.csv', 'a', newline='')
     wr3 = csv.writer(f3)
@@ -149,8 +149,9 @@ def play(args):
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
 
 
-            # wr.writerow(info[0].tolist())
-            # wr2.writerow(info[1].tolist())
+
+            wr.writerow(info[0].tolist())
+            wr2.writerow(info[1].tolist())
             wr3.writerow(info[2].tolist())
 
         # print(env.dof_vel)
