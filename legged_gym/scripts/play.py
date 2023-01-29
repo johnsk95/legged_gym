@@ -87,15 +87,15 @@ def play(args):
     root_orientations = root_tensor[:, 3:7]
     root_linvels = root_tensor[:, 7:10]
     root_angvels = root_tensor[:, 10:13]
-    oldvel = torch.zeros(root_linvels.size(), device=env.device, dtype=torch.float)
+    oldvel = env.oldvel
 
-    f = open('gaits/class1_15.csv', 'a', newline='')
+    f = open('force_5/class1_10.csv', 'a', newline='')
     wr = csv.writer(f)
 
-    f2 = open('gaits/class2_15.csv', 'a', newline='')
+    f2 = open('force_5/class2_10.csv', 'a', newline='')
     wr2 = csv.writer(f2)
 
-    f3 = open('gaits/class3_15.csv', 'a', newline='')
+    f3 = open('force_5/class3_10.csv', 'a', newline='')
     wr3 = csv.writer(f3)
 
     for i in range(10*int(env.max_episode_length)):
@@ -103,14 +103,22 @@ def play(args):
         #     f.write(f'{root_tensor[0,3:].tolist()}, {env.force[0].tolist()}\n')
         # print(env.force[0].tolist())
         force = env.force * env.push_duration * env.dt
-        # root_linacc = (root_linvels - oldvel) / env.dt
+        root_linacc = (root_linvels - oldvel) / env.dt
+        acc = env.obs_buf[:, 6:9]
         joint_angles = env.obs_buf[:,12:24]
-        joint_acc = env.obs_buf[:,24:36]
-        # imu = torch.hstack([root_orientations, root_angvels, root_linacc, env.dof_pos, env.dof_vel])
-        # imu = torch.hstack([root_orientations, root_linvels, env.dof_pos, env.dof_vel])
-        imu = torch.hstack([root_orientations, root_linvels, joint_angles, joint_acc])
-        print(force[0])
+        joint_vel = env.obs_buf[:,24:36]
+        # imu = torch.hstack([root_orientations, root_angvels, env.dof_pos, env.dof_vel])
+        imu = torch.hstack([root_linvels, root_linacc, joint_angles, joint_vel])
+        # imu = torch.hstack([root_angvels, root_linacc, joint_angles, joint_vel])
+        # imu = torch.hstack([root_orientations, root_angvels, acc, env.dof_pos, env.dof_vel])
+        # imu = torch.hstack([root_orientations, root_linvels, root_linacc, joint_angles, joint_vel]) # next: change to dof_pos, dof_vel
+        # imu = torch.hstack([root_orientations, root_linvels, root_linacc, env.dof_pos, env.dof_vel]) # next: change to dof_pos, dof_vel
+        # imu = torch.hstack([root_orientations, root_linvels, root_linacc])
+        # imu = torch.hstack([root_linvels, root_angvels])
 
+        # imu = torch.hstack([root_orientations, root_linvels, root_angvels, acc, env.dof_pos, env.dof_vel]) # all (37)
+        # imu = torch.hstack([root_orientations, root_linvels, root_angvels, root_linacc, env.dof_pos, env.dof_vel]) # all_linacc
+        # imu = torch.hstack([root_orientations, root_linvels]) # orivel (7)
         # if i > 50 and not env.zero: # only record when pushed
         if i > 50:
             # info = torch.hstack([imu, force])
@@ -121,19 +129,32 @@ def play(args):
                 # print(force[n,0])
                 if force[n,0] <= -300.:
                     labels.append(0)
-                    print('0:stop')
+                    # print('0:stop')
                 elif -300. < force[n,0] <= -50.:
                     labels.append(1)
-                    print('1:slow down')
+                    # print('1:slow down')
                 elif force[n,0] >= 400.:
-                    print('3:faster')
+                    # print('3:faster')
                     labels.append(3)
                 else:
-                    print('2:noise')
+                    # print('2:noise')
                     labels.append(2)
+
+
+            # for n in range(env.num_envs):
+            #     if force[n,0] >= 300.:
+            #         print('faster')
+            #         labels.append(0)
+            #     else:
+            #         print('noise')
+            #         labels.append(1)
                     
             cv = torch.tensor(labels, device=env.device, dtype=torch.float)
-            info = torch.hstack([imu, cv.unsqueeze(1)])
+            # info = torch.hstack([imu, cv.unsqueeze(1)])
+
+            info = torch.hstack([imu, force[:,0].unsqueeze(1)])
+            # info = torch.hstack([imu, env.force[:,0].unsqueeze(1)])
+
             # dd = torch.hstack([imu, env.force])
             # wr.writerows(imu.tolist() + env.force.tolist())
             # wr.writerows(dd.tolist())
@@ -149,7 +170,10 @@ def play(args):
             # info = torch.hstack([imu, force[:,1].unsqueeze(1)])
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e9b2f2d5dbc7562ea9d9c626943baea92424718a
             wr.writerow(info[0].tolist())
             wr2.writerow(info[1].tolist())
             wr3.writerow(info[2].tolist())

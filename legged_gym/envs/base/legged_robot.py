@@ -354,29 +354,39 @@ class LeggedRobot(BaseTask):
         if self.cfg.terrain.measure_heights:
             self.measured_heights = self._get_heights()
 
-        scale = 1e-2
+        scale = 1e-1
         # print(self.push_interval)
         if self.count % self.push_interval == 0:
             self.zero = False
-            self.push_interval_s = random.uniform(0.5, 1.5)
-            # self.push_interval_s = random.uniform(1.7, 2.1)
+            # self.push_interval_s = random.uniform(0.3, 1.0)
+            # self.push_interval_s = random.uniform(0.3, 0.8) # for force predictor
+            self.push_interval_s = random.uniform(0.8, 1.8)
             self.push_interval = np.ceil(self.push_interval_s / self.dt)
             max_force = self.cfg.domain_rand.max_push_force
             # self.force = torch_rand_float(-500, 500, (self.num_envs,3), device=self.device)
             
-            p = random.uniform(0,1)
-            # generate different forces with probability
-            if p < 0.3:
-                x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
-            else:
-                x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # for force classifier - generate different forces with probability
+            # p = random.uniform(0,1)
+            # if p < 0.7:
+            #     x_force = torch_rand_float(-2000, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # else:
+            #     x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
 
-            # x_force = torch_rand_float(0, 0, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # for force predictor - uniform force distribution
+            x_force = torch_rand_float(-2000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+
+            # if p < 0.7:
+            #     x_force = torch_rand_float(1000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+            # else:
+            #     x_force = torch_rand_float(-2000, 1000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
+
+
+            # x_force = torch_rand_float(-2000, 3000, (self.num_envs,1), device=self.device) # only x force # side, front 2000
             # self.force = torch.hstack([torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float), x_force, torch.zeros(self.num_envs,1,device=self.device,dtype=torch.float)]) #side force
             self.force = torch.hstack([x_force, torch.zeros(self.num_envs,2,device=self.device,dtype=torch.float)])
             
             self._push_robots(self.force)
-            self.push_duration = random.uniform(10, 20) # side (5,15), front (5,20), all (5, 20)
+            self.push_duration = random.uniform(5, 20) # side (5,15), front (5,20), all (5, 20), force (5, 15)
 
             # tt = np.zeros((2,3), dtype=np.float32)
             start = self.root_states[0,0:3] + torch.tensor([0.,0.,0.09], device=self.device)
@@ -385,7 +395,7 @@ class LeggedRobot(BaseTask):
             # tt[1:] = self.force[0].cpu().detach().numpy()
             
             self.gym.add_lines(self.viewer, self.envs[0], 1, tt, self.red)
-        elif self.count % self.push_interval < self.push_duration:
+        elif (self.count % self.push_interval) < self.push_duration:
             self._push_robots(self.force)
 
             linacc = (self.base_lin_vel - self.oldvel) / self.dt
